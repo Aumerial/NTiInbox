@@ -1,0 +1,173 @@
+@inject MessageQueueService Messages
+@inject IbmiSession Connection
+@inject DialogService Dialogs
+@inject ToastService Toasts
+
+@* Break message, through QMHSNDBM. This message shows immediately on the target *@
+@* workstation and interrupts its session: sending requires a strong confirmation, *@
+@* the user must retype the name of the target workstation. *@
+
+<ModalDialog Visible="_visible" Title="@L("break.title")" IconName="alert-triangle" Danger="true" OnClose="Close">
+    <Body>
+        <div class="nti-danger-notice">
+            <span class="nti-glyph"><Icon Name="alert-triangle" Size="18" /></span>
+            <span>@L("break.warning")</span>
+        </div>
+
+        <div class="nti-row nti-wrap" style="gap:12px">
+            <div class="nti-field nti-grow">
+                <label for="break-target">@L("break.target") <HintIcon Text="@L("break.target.hint")" /></label>
+                <input id="break-target" type="text" class="nti-input-mono" placeholder="DSP01" @bind="_model.TargetQueue" @bind:event="oninput" disabled="@_armed" />
+            </div>
+            <div class="nti-field" style="width:150px">
+                <label for="break-library">@L("common.library")</label>
+                <input id="break-library" type="text" class="nti-input-mono" placeholder="*LIBL" @bind="_model.TargetLibrary" disabled="@_armed" />
+            </div>
+        </div>
+
+        <div class="nti-field">
+            <label for="break-type">@L("break.type")</label>
+            <select id="break-type" @bind="_model.MessageType" disabled="@_armed">
+                <option value="*INFO">@L("break.type.info")</option>
+                <option value="*INQ">@L("compose.type.inq")</option>
+            </select>
+        </div>
+
+        @if (_model.IsInquiry)
+        {
+            <div class="nti-row nti-wrap" style="gap:12px">
+                <div class="nti-field nti-grow">
+                    <label for="break-reply-queue">@L("compose.replyQueue")</label>
+                    <input id="break-reply-queue" type="text" class="nti-input-mono" placeholder="@Connection.User" @bind="_model.ReplyQueue" disabled="@_armed" />
+                </div>
+                <div class="nti-field" style="width:150px">
+                    <label for="break-reply-library">@L("common.library")</label>
+                    <input id="break-reply-library" type="text" class="nti-input-mono" placeholder="*LIBL" @bind="_model.ReplyLibrary" disabled="@_armed" />
+                </div>
+            </div>
+        }
+
+        <div class="nti-field">
+            <label for="break-text">@L("break.text")</label>
+            <textarea id="break-text" @bind="_model.MessageText" @bind:event="oninput" disabled="@_armed"
+                      placeholder="@L("break.text.placeholder")"></textarea>
+        </div>
+
+        @if (_armed)
+        {
+            <div class="nti-divider"></div>
+
+            <DangerBanner Destructive="true" />
+
+            <div class="nti-field" style="margin-top:12px">
+                <label for="break-confirm">@L("break.confirm")</label>
+                <span class="nti-hint">
+                    @L("break.confirm.before") <strong class="nti-mono">@_model.TargetQueue.Trim().ToUpperInvariant()</strong> @L("break.confirm.after")
+                </span>
+                <input id="break-confirm" type="text" class="nti-input-mono" @bind="_confirmation" @bind:event="oninput" placeholder="@L("break.confirm.placeholder")" />
+            </div>
+        }
+    </Body>
+    <Footer>
+        @if (_armed)
+        {
+            <button class="nti-btn" type="button" @onclick="() => _armed = false" disabled="@_busy">@L("break.back")</button>
+            <button class="nti-btn nti-btn-danger" type="button" @onclick="Send" disabled="@(_busy || !_confirmed)">
+                @if (_busy)
+                {
+                    <span class="nti-loader"></span>
+                }
+                else
+                {
+                    <Icon Name="alert-triangle" Size="14" />
+                }
+                @L("break.send")
+            </button>
+        }
+        else
+        {
+            <button class="nti-btn" type="button" @onclick="Close">@L("common.cancel")</button>
+            <button class="nti-btn nti-btn-danger" type="button" @onclick="Arm" disabled="@(!_canArm)">
+                <Icon Name="send" Size="14" />
+                @L("break.continue")
+            </button>
+        }
+    </Footer>
+</ModalDialog>
+
+@code {
+    private BreakMessageRequest _model = new();
+    private string _confirmation = string.Empty;
+    private bool _visible;
+    private bool _busy;
+    private bool _armed;
+
+    private bool _canArm => !string.IsNullOrWhiteSpace(_model.TargetQueue)
+        && !string.IsNullOrWhiteSpace(_model.MessageText)
+        && (!_model.IsInquiry || !string.IsNullOrWhiteSpace(_model.ReplyQueue));
+
+    private bool _confirmed => string.Equals(
+        _confirmation.Trim(),
+        _model.TargetQueue.Trim(),
+        StringComparison.OrdinalIgnoreCase);
+
+    protected override void OnInitialized() => Dialogs.BreakRequested += Open;
+
+    private void Open()
+    {
+        _model = new BreakMessageRequest
+        {
+            TargetLibrary = "*LIBL",
+            ReplyQueue = Connection.User,
+            ReplyLibrary = "*LIBL"
+        };
+
+        _confirmation = string.Empty;
+        _armed = false;
+        _visible = true;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void Arm()
+    {
+        _confirmation = string.Empty;
+        _armed = true;
+    }
+
+    private void Close()
+    {
+        _visible = false;
+        _armed = false;
+    }
+
+    private async Task Send()
+    {
+        if (!_confirmed)
+        {
+            return;
+        }
+
+        _busy = true;
+
+        try
+        {
+            await Messages.SendBreakAsync(_model);
+            Toasts.Success(L("break.toast.sent"), _model.TargetQueue.Trim().ToUpperInvariant(), keep: true);
+            Close();
+        }
+        catch (Exception ex)
+        {
+            Toasts.Error(L("break.toast.failed"), ex);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    public override void Dispose()
+    {
+        Dialogs.BreakRequested -= Open;
+        base.Dispose();
+    }
+}

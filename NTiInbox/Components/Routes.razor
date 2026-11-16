@@ -1,0 +1,17 @@
+@inject Localizer Localizer
+
+<Router AppAssembly="typeof(Program).Assembly" NotFoundPage="typeof(Pages.NotFoundPage)">
+    <Found Context="routeData">
+        <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
+    </Found>
+</Router>
+
+@code {
+    /// <summary>
+    /// Language resolved by the request localization (cookie, then browser). It is handed over
+    /// by the static page because the circuit has no access to the HTTP request.
+    /// </summary>
+    [Parameter] public string? InitialLanguage { get; set; }
+
+    protected override void OnInitialized() => Localizer.SetLanguage(InitialLanguage);
+}

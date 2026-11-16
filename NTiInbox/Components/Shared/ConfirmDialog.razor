@@ -1,0 +1,49 @@
+@* Confirmation of a state-changing action. The banner recalls the risk: nature of *@
+@* the action, production environment, elevated authorities. *@
+
+<ModalDialog Visible="Visible"
+             Title="@Title"
+             IconName="@(Danger ? "alert-triangle" : "help")"
+             Danger="Danger"
+             OnClose="OnCancel">
+    <Body>
+        <p style="margin:0 0 12px 0">@Message</p>
+        <DangerBanner Destructive="Danger" />
+    </Body>
+    <Footer>
+        <button class="nti-btn" type="button" @onclick="OnCancel" disabled="@Busy">@L("common.cancel")</button>
+        <button class="nti-btn @(Danger ? "nti-btn-danger" : "nti-btn-primary")" type="button" @onclick="OnConfirm" disabled="@Busy">
+            @if (Busy)
+            {
+                <span class="nti-loader"></span>
+            }
+            @ConfirmLabel
+        </button>
+    </Footer>
+</ModalDialog>
+
+@code {
+    /// <summary>Shows or hides the confirmation.</summary>
+    [Parameter] public bool Visible { get; set; }
+
+    /// <summary>Title of the dialog.</summary>
+    [Parameter] public string Title { get; set; } = string.Empty;
+
+    /// <summary>Question put to the user.</summary>
+    [Parameter] public string Message { get; set; } = string.Empty;
+
+    /// <summary>Label of the confirm button.</summary>
+    [Parameter] public string ConfirmLabel { get; set; } = string.Empty;
+
+    /// <summary>Makes the action visually destructive.</summary>
+    [Parameter] public bool Danger { get; set; }
+
+    /// <summary>Disables the buttons while processing.</summary>
+    [Parameter] public bool Busy { get; set; }
+
+    /// <summary>Called on confirmation.</summary>
+    [Parameter] public EventCallback OnConfirm { get; set; }
+
+    /// <summary>Called on cancellation.</summary>
+    [Parameter] public EventCallback OnCancel { get; set; }
+}

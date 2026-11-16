@@ -1,0 +1,16 @@
+# Normalise line endings in the repository, check out as the platform expects.
+* text=auto
+
+*.cs      text diff=csharp
+*.razor   text
+*.css     text
+*.js      text
+*.json    text
+*.md      text
+*.slnx    text
+*.csproj  text
+
+# Binary files
+*.png binary
+*.ico binary
+*.pfx binary

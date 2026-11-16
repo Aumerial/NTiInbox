@@ -1,0 +1,14 @@
+@page "/Error"
+@layout SignInLayout
+
+<PageTitle>@L("error.title") - NTi Inbox</PageTitle>
+
+@* No technical detail on purpose: the cause is in the server log. *@
+
+<div class="nti-login-card">
+    <div class="nti-login-brand"><Brand /></div>
+    <h1 class="nti-error-title">@L("error.title")</h1>
+    <p class="nti-subtitle">@L("error.text")</p>
+
+    <a class="nti-btn nti-btn-primary nti-btn-block" href="">@L("error.backToInbox")</a>
+</div>

@@ -1,0 +1,113 @@
+@* Queue activity over 24 hours, one bar per hour, stacked by severity tier. *@
+@* The tiers match the badges of the list. *@
+
+@if (Buckets.Count > 0 && _max > 0)
+{
+    <div class="nti-activity-card">
+        <div class="nti-activity-head">
+            <span class="nti-section-label">@L("chart.title", Localizer.FormatDate(Buckets[^1].Hour.AddHours(1)))</span>
+            <span class="nti-grow"></span>
+
+            @if (Selected is not null)
+            {
+                <button class="nti-btn nti-btn-sm nti-btn-ghost" type="button" @onclick="() => OnSelect.InvokeAsync(null)">
+                    <Icon Name="close" Size="13" />
+                    @L("chart.slot", Selected.Value.ToString("HH:mm"))
+                </button>
+            }
+
+            <span class="nti-small nti-muted">@Plural("chart.total", Buckets.Sum(b => b.Total))</span>
+        </div>
+
+        @* One column per hour: a soft track, and the stack of severity tiers inside it. *@
+        <div class="nti-activity-bars" role="img" aria-label="@L("chart.aria")">
+            @foreach (var bucket in Buckets)
+            {
+                var isSelected = Selected is not null && Selected.Value == bucket.Hour;
+                var captured = bucket;
+
+                <button type="button" class="nti-activity-col @(isSelected ? "nti-selected" : "")"
+                        title="@($"{bucket.Hour:HH:mm}, {Plural("chart.total", bucket.Total)}")"
+                        @onclick="() => Toggle(captured)">
+                    <span class="nti-activity-track">
+                        @if (bucket.Total > 0)
+                        {
+                            <span class="nti-activity-stack" style="height:@Fmt(bucket.Total * 100d / _max)%">
+                                @foreach (var part in Parts(bucket))
+                                {
+                                    <span class="nti-seg @part.Css" style="flex-grow:@part.Count"></span>
+                                }
+                            </span>
+                        }
+                    </span>
+                </button>
+            }
+        </div>
+
+        <div class="nti-activity-scale">
+            @foreach (var label in HourLabels())
+            {
+                <span>@label</span>
+            }
+        </div>
+
+        @if (Truncated)
+        {
+            <p class="nti-small nti-muted" style="margin:6px 0 0 0">@L("chart.truncated", Loaded)</p>
+        }
+
+        <div class="nti-activity-legend">
+            <span><i class="nti-seg-low"></i>@L("chart.legend.low")</span>
+            <span><i class="nti-seg-info"></i>@L("chart.legend.info")</span>
+            <span><i class="nti-seg-warning"></i>@L("chart.legend.warning")</span>
+            <span><i class="nti-seg-critical"></i>@L("chart.legend.critical")</span>
+        </div>
+    </div>
+}
+
+@code {
+    /// <summary>Hourly slots to draw.</summary>
+    [Parameter, EditorRequired] public List<ActivityBucket> Buckets { get; set; } = [];
+
+    /// <summary>True when the queue holds more messages than were read.</summary>
+    [Parameter] public bool Truncated { get; set; }
+
+    /// <summary>Number of messages the chart is computed on.</summary>
+    [Parameter] public int Loaded { get; set; }
+
+    /// <summary>Slot currently filtered, or null.</summary>
+    [Parameter] public DateTime? Selected { get; set; }
+
+    /// <summary>Called when a slot is clicked, with null to show everything.</summary>
+    [Parameter] public EventCallback<DateTime?> OnSelect { get; set; }
+
+    private int _max => Buckets.Count == 0 ? 0 : Buckets.Max(b => b.Total);
+
+    /// <summary>Segments of a bar, from the mildest at the bottom to the most severe.</summary>
+    private static IEnumerable<(int Count, string Css)> Parts(ActivityBucket bucket)
+    {
+        if (bucket.Low > 0) yield return (bucket.Low, "nti-seg-low");
+        if (bucket.Info > 0) yield return (bucket.Info, "nti-seg-info");
+        if (bucket.Warning > 0) yield return (bucket.Warning, "nti-seg-warning");
+        if (bucket.Critical > 0) yield return (bucket.Critical, "nti-seg-critical");
+    }
+
+    /// <summary>A few hour marks under the axis, one slot out of six.</summary>
+    private IEnumerable<string> HourLabels()
+    {
+        for (var i = 0; i < Buckets.Count; i += 6)
+        {
+            yield return Buckets[i].Hour.ToString("HH") + ":00";
+        }
+    }
+
+    private async Task Toggle(ActivityBucket bucket)
+    {
+        var value = Selected is not null && Selected.Value == bucket.Hour ? (DateTime?)null : bucket.Hour;
+        await OnSelect.InvokeAsync(value);
+    }
+
+    /// <summary>Invariant format: a decimal comma would break the CSS value.</summary>
+    private static string Fmt(double value)
+        => value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+}

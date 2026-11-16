@@ -1,0 +1,103 @@
+@* Row of a group of repeated messages. Collapsed, it takes the space of a single *@
+@* row and shows the occurrence count and the time range covered. *@
+
+@if (!Group.IsCollapsible)
+{
+    @foreach (var message in Group.Messages)
+    {
+        <MessageListItem Message="message"
+                         Selected="IsSelected(message)"
+                         Checked="IsChecked(message)"
+                         OnClick="() => OnSelect.InvokeAsync(message)"
+                         OnCheck="value => OnCheck.InvokeAsync((message, value))" />
+    }
+}
+else
+{
+    <div class="nti-message-row nti-group-row @(_containsSelected ? "nti-selected" : "") @(_allChecked ? "nti-checked" : "")">
+        <input type="checkbox" class="nti-message-check" checked="@_allChecked" @onchange="OnGroupCheck"
+               aria-label="@L("group.selectAll", Group.Count)" />
+
+        <button class="nti-message-row-body" type="button" @onclick="() => OnSelect.InvokeAsync(Group.Newest)">
+            <div class="nti-msg-top">
+                <SeverityBadge Severity="Group.MaxSeverity" />
+                <span class="nti-msg-id">@MessageFormatter.DisplayId(Localizer, Group.Newest)</span>
+                <span class="nti-chip nti-chip-accent">@L("group.times", Group.Count)</span>
+                <span class="nti-msg-time">@(Group.From == Group.To ? Group.From : L("group.range", Group.From, Group.To))</span>
+            </div>
+
+            <div class="nti-msg-text">@MessageFormatter.DisplayText(Localizer, Group.Newest)</div>
+
+            <div class="nti-msg-chips">
+                <span class="nti-chip @MessageFormatter.TypeCssClass(Group.Newest.MessageType)">@MessageFormatter.TypeLabel(Localizer, Group.Newest.MessageType)</span>
+            </div>
+        </button>
+
+        <button class="nti-group-toggle" type="button" @onclick="Toggle"
+                title="@(_expanded ? L("group.collapse") : L("group.expand", Group.Count))"
+                aria-label="@(_expanded ? L("group.collapse") : L("group.expand", Group.Count))">
+            <span class="@(_expanded ? "nti-rotated" : "")">
+                <Icon Name="chevron-right" Size="14" />
+            </span>
+            @(_expanded ? L("group.collapseShort") : L("group.expandShort"))
+        </button>
+    </div>
+
+    @if (_expanded)
+    {
+        <div class="nti-group-children">
+            <div class="nti-group-children-head">
+                @L("group.childrenHead", Group.Count)
+            </div>
+
+            @foreach (var message in Group.Messages)
+            {
+                <MessageListItem Message="message"
+                                 Selected="IsSelected(message)"
+                                 Checked="IsChecked(message)"
+                                 Compact="true"
+                                 OnClick="() => OnSelect.InvokeAsync(message)"
+                                 OnCheck="value => OnCheck.InvokeAsync((message, value))" />
+            }
+        </div>
+    }
+}
+
+@code {
+    /// <summary>Group shown on this row.</summary>
+    [Parameter, EditorRequired] public MessageGroup Group { get; set; } = default!;
+
+    /// <summary>Message currently open in the reading pane.</summary>
+    [Parameter] public QueueMessage? Selected { get; set; }
+
+    /// <summary>Predicate telling whether a message is checked.</summary>
+    [Parameter, EditorRequired] public Func<QueueMessage, bool> CheckedPredicate { get; set; } = default!;
+
+    /// <summary>Called when a message is opened.</summary>
+    [Parameter] public EventCallback<QueueMessage> OnSelect { get; set; }
+
+    /// <summary>Called when the checkbox of a message changes.</summary>
+    [Parameter] public EventCallback<(QueueMessage Message, bool Value)> OnCheck { get; set; }
+
+    private bool _expanded;
+
+    private bool _containsSelected => Selected is not null && Group.Messages.Any(m => ReferenceEquals(m, Selected));
+
+    private bool _allChecked => Group.Messages.All(CheckedPredicate);
+
+    private bool IsSelected(QueueMessage message) => ReferenceEquals(message, Selected);
+
+    private bool IsChecked(QueueMessage message) => CheckedPredicate(message);
+
+    private void Toggle() => _expanded = !_expanded;
+
+    private async Task OnGroupCheck(ChangeEventArgs args)
+    {
+        var value = args.Value is true;
+
+        foreach (var message in Group.Messages)
+        {
+            await OnCheck.InvokeAsync((message, value));
+        }
+    }
+}

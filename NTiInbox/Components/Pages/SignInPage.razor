@@ -1,0 +1,378 @@
+@page "/login"
+@layout SignInLayout
+@inject IbmiSession Connection
+@inject InboxState Inbox
+@inject MessageQueueService Service
+@inject ConnectionProfileStore Profiles
+@inject ErrorText Errors
+@inject ILogger<SignInPage> Logger
+@inject NavigationManager Navigation
+
+<PageTitle>@L("login.title") - NTi Inbox</PageTitle>
+
+@* Sign-on screen. Nothing is reachable until the connection is open. *@
+
+<div class="nti-login-card">
+    <div class="nti-login-brand"><Brand /></div>
+
+    @if (_saved.Count > 0)
+    {
+        <p class="nti-login-greeting">@Greeting</p>
+    }
+
+    @* The error comes first, so it is seen without scrolling. *@
+    @if (ErrorMessage is { } failure)
+    {
+        <div class="nti-login-error" role="alert">
+            <Icon Name="alert-triangle" Size="15" />
+            <div>
+                <strong>@L("login.failed")</strong>
+                <span>@failure</span>
+            </div>
+        </div>
+    }
+
+    @* Demonstration warning: the full terms are one click away, in the information window. *@
+    <div class="nti-danger-banner nti-demo-notice" role="note">
+        <span class="nti-glyph"><Icon Name="alert-triangle" Size="16" /></span>
+        <div>
+            <strong>@L("demo.title")</strong>
+            <p>@L("demo.text")</p>
+        </div>
+    </div>
+
+    @if (_profile is not null)
+    {
+        @* A saved profile only asks for the password. *@
+        <div class="nti-saved-profile @(_profile.IsProduction ? "nti-production" : "")">
+            <span class="nti-login-avatar">@Initials(_profile.User)</span>
+            <div class="nti-saved-profile-main">
+                <strong>@_profile.User</strong>
+                <span class="nti-small nti-muted">@_profile.Host</span>
+            </div>
+            <span class="nti-chips">
+                @if (_profile.UseSsl)
+                {
+                    <span class="nti-chip nti-chip-accent" title="@L("login.ssl.help")">@L("login.ssl.badge")</span>
+                }
+                @if (_profile.IsProduction)
+                {
+                    <span class="nti-chip nti-chip-danger">@L("login.production")</span>
+                }
+            </span>
+        </div>
+
+        <form class="nti-login-form" @onsubmit="Connect">
+            <div class="nti-field">
+                <label for="password">@L("login.password")</label>
+                <input id="password" name="nti-secret" type="password" @bind="_password" @bind:event="oninput"
+                       @attributes="NoAutofill" autocomplete="new-password" autofocus />
+            </div>
+
+            <label class="nti-check-row">
+                <input type="checkbox" checked="@_profile.UseSsl" @onchange="args => _profile.UseSsl = args.Value is true" />
+                <span>@L("login.ssl")</span>
+                <HintIcon Text="@L("login.ssl.help")" />
+            </label>
+
+            <button class="nti-btn nti-btn-primary nti-btn-block" type="submit" disabled="@_busy">
+                @if (_busy)
+                {
+                    <span class="nti-loader"></span>
+                    <span>@L("login.connecting")</span>
+                }
+                else
+                {
+                    <span>@L("login.connect")</span>
+                }
+            </button>
+        </form>
+
+        <div class="nti-login-links">
+            <button class="nti-link-button" type="button" @onclick="() => _confirmForget = true" disabled="@_busy">@L("login.forget")</button>
+            <button class="nti-link-button" type="button" @onclick="UseAnother" disabled="@_busy">@L("login.another")</button>
+        </div>
+    }
+    else
+    {
+        @if (_saved.Count > 0)
+        {
+            <div class="nti-profile-list" role="list">
+                @foreach (var saved in _saved)
+                {
+                    <button class="nti-profile-pick @(saved.IsProduction ? "nti-production" : "")" type="button" role="listitem"
+                            @onclick="() => Pick(saved)">
+                        <span class="nti-login-avatar">@Initials(saved.User)</span>
+                        <span class="nti-saved-profile-main">
+                            <strong>@saved.User</strong>
+                            <span class="nti-small nti-muted">@saved.Host</span>
+                        </span>
+                        <span class="nti-chips">
+                            @if (saved.UseSsl)
+                            {
+                                <span class="nti-chip nti-chip-accent" title="@L("login.ssl.help")">@L("login.ssl.badge")</span>
+                            }
+                            @if (saved.IsProduction)
+                            {
+                                <span class="nti-chip nti-chip-danger">@L("login.production")</span>
+                            }
+                        </span>
+                    </button>
+                }
+            </div>
+        }
+
+        <form class="nti-login-form" @onsubmit="Connect">
+            <div class="nti-field">
+                <label for="host">@L("login.host")</label>
+                <input id="host" name="nti-system" type="text" @bind="_host" @bind:event="oninput"
+                       @attributes="NoAutofill" placeholder="myibmi.example.com" autocomplete="off" />
+            </div>
+
+            <div class="nti-field">
+                <label for="user">@L("login.user")</label>
+                <input id="user" name="nti-profile" type="text" @bind="_user" @bind:event="oninput"
+                       @attributes="NoAutofill" placeholder="MYPROFILE" autocomplete="off" />
+            </div>
+
+            <div class="nti-field">
+                <label for="password">@L("login.password")</label>
+                <input id="password" name="nti-secret" type="password" @bind="_password" @bind:event="oninput"
+                       @attributes="NoAutofill" autocomplete="new-password" />
+            </div>
+
+            <div class="nti-field">
+                <label for="library">@L("login.library") <HintIcon Text="@L("login.library.help")" /></label>
+                <input id="library" name="nti-library" type="text" @bind="_library" @bind:event="oninput"
+                       @attributes="NoAutofill" placeholder="QSYS" autocomplete="off" />
+            </div>
+
+            <label class="nti-check-row">
+                <input type="checkbox" @bind="_useSsl" />
+                <span>@L("login.ssl")</span>
+                <HintIcon Text="@L("login.ssl.help")" />
+            </label>
+
+            <label class="nti-check-row">
+                <input type="checkbox" @bind="_isProduction" />
+                <span>@L("login.production.label")</span>
+                <HintIcon Text="@L("login.production.help")" />
+            </label>
+
+            <button class="nti-btn nti-btn-primary nti-btn-block" type="submit" disabled="@_busy">
+                @if (_busy)
+                {
+                    <span class="nti-loader"></span>
+                    <span>@L("login.connecting")</span>
+                }
+                else
+                {
+                    <span>@L("login.connect")</span>
+                }
+            </button>
+        </form>
+    }
+
+    <button class="nti-info-link" type="button" @onclick="() => _info = true">
+        <Icon Name="help" Size="14" />
+        @L("login.info.link")
+    </button>
+</div>
+
+<ModalDialog Visible="_info" Title="@L("login.info.title")" IconName="shield-alert" OnClose="() => _info = false">
+    <Body>
+        <ul class="nti-info-list">
+            <li><strong>@L("login.info.password.title")</strong> @L("login.info.password.text")</li>
+            <li><strong>@L("login.info.saved.title")</strong> @L("login.info.saved.text")</li>
+            <li><strong>@L("login.info.rights.title")</strong> @L("login.info.rights.text")</li>
+            <li><strong>@L("login.info.encryption.title")</strong> @L("login.info.encryption.text")</li>
+        </ul>
+
+        <div class="nti-danger-banner nti-demo-notice" role="note">
+            <span class="nti-glyph"><Icon Name="alert-triangle" Size="16" /></span>
+            <div>
+                <strong>@L("terms.title")</strong>
+                <p>@L("terms.text")</p>
+            </div>
+        </div>
+    </Body>
+    <Footer>
+        <button class="nti-btn" type="button" @onclick="() => _info = false">@L("common.close")</button>
+    </Footer>
+</ModalDialog>
+
+@* Forgetting a saved connection is confirmed in a window, like any removal. *@
+<ModalDialog Visible="_confirmForget" Title="@L("login.forget.title")" IconName="help" OnClose="() => _confirmForget = false">
+    <Body>
+        <p style="margin:0">@L("login.forget.text", _profile?.User ?? string.Empty, _profile?.Host ?? string.Empty)</p>
+    </Body>
+    <Footer>
+        <button class="nti-btn" type="button" @onclick="() => _confirmForget = false">@L("common.cancel")</button>
+        <button class="nti-btn nti-btn-danger" type="button" @onclick="Forget">@L("login.forget.confirm")</button>
+    </Footer>
+</ModalDialog>
+
+@code {
+    private IReadOnlyList<ConnectionProfile> _saved = [];
+    private ConnectionProfile? _profile;
+
+    private string _host = string.Empty;
+    private string _user = string.Empty;
+    private string _password = string.Empty;
+    private string _library = string.Empty;
+    private bool _useSsl;
+    private bool _isProduction;
+
+    private bool _busy;
+    private bool _info;
+    private bool _confirmForget;
+    private bool _missing;
+    private Exception? _failure;
+
+    // Keeps password managers and browsers from filling or suggesting values.
+    private static readonly Dictionary<string, object> NoAutofill = new()
+    {
+        ["autocorrect"] = "off",
+        ["autocapitalize"] = "off",
+        ["spellcheck"] = "false",
+        ["data-lpignore"] = "true",
+        ["data-1p-ignore"] = "true",
+        ["data-bwignore"] = "true",
+        ["data-form-type"] = "other"
+    };
+
+    // Rebuilt on each render, so the text follows a language change.
+    private string? ErrorMessage => _missing
+        ? L("login.missing")
+        : _failure is null ? null : Errors.Describe(_failure);
+
+    // Most recently used connection first: it names the user in the greeting.
+    private string Greeting => DateTime.Now.Hour switch
+    {
+        < 12 => L("login.greeting.morning", _saved[0].User),
+        < 18 => L("login.greeting.afternoon", _saved[0].User),
+        _ => L("login.greeting.evening", _saved[0].User)
+    };
+
+    protected override void OnInitialized()
+    {
+        if (Connection.IsConnected)
+        {
+            Navigation.NavigateTo("");
+            return;
+        }
+
+        _failure = Connection.LastFailure;
+        _saved = Profiles.List();
+
+        // Configuration only pre-fills the form, it never holds the password.
+        var defaults = Connection.Defaults;
+        _host = defaults.Host;
+        _user = defaults.User;
+        _library = defaults.Library;
+        _useSsl = defaults.UseSsl;
+
+        // With a single saved profile, the password is the only thing left to ask.
+        if (_saved.Count == 1)
+        {
+            Pick(_saved[0]);
+        }
+    }
+
+    private static string Initials(string user)
+        => user.Length == 0 ? "?" : user[..Math.Min(2, user.Length)].ToUpperInvariant();
+
+    private void Pick(ConnectionProfile profile)
+    {
+        _profile = profile;
+        _password = string.Empty;
+    }
+
+    private void UseAnother()
+    {
+        _profile = null;
+        _password = string.Empty;
+    }
+
+    private void Forget()
+    {
+        _confirmForget = false;
+
+        if (_profile is null)
+        {
+            return;
+        }
+
+        Profiles.Remove(_profile);
+        _saved = Profiles.List();
+        _profile = null;
+        _password = string.Empty;
+    }
+
+    private async Task Connect()
+    {
+        var host = (_profile?.Host ?? _host).Trim();
+        var user = (_profile?.User ?? _user).Trim().ToUpperInvariant();
+
+        _failure = null;
+        _missing = host.Length == 0 || user.Length == 0 || _password.Length == 0;
+
+        if (_missing)
+        {
+            return;
+        }
+
+        var library = (_profile?.Library ?? _library).Trim().ToUpperInvariant();
+        var useSsl = _profile?.UseSsl ?? _useSsl;
+        var isProduction = _profile?.IsProduction ?? _isProduction;
+
+        _busy = true;
+
+        try
+        {
+            await Connection.ConnectAsync(new ConnectionRequest(host, user, _password, useSsl, isProduction));
+
+            // The password is no longer needed by the page: only the session keeps it.
+            _password = string.Empty;
+
+            Profiles.Save(new ConnectionProfile
+            {
+                Host = host,
+                User = user,
+                Library = library,
+                UseSsl = useSsl,
+                IsProduction = isProduction
+            });
+
+            Inbox.Reset();
+            Inbox.DiscoveryLibrary = library.Length == 0 ? "*LIBL" : library;
+            await LoadAuthorities();
+
+            Navigation.NavigateTo("");
+        }
+        catch (Exception ex)
+        {
+            // The connection is closed again: the card shows why, above the form.
+            _failure = ex;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    // The elevated authorities feed the warning banner. Failing to read them must not
+    // block the sign-on: the banner then simply omits that signal.
+    private async Task LoadAuthorities()
+    {
+        try
+        {
+            await Service.LoadSessionAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning("Reading the profile failed: {Message}", Connection.Sanitize(ex.Message));
+            Connection.SetElevatedAuthorities([]);
+        }
+    }
+}

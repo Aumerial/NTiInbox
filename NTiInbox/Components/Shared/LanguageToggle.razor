@@ -1,0 +1,20 @@
+@inject IJSRuntime JS
+
+<div class="nti-segmented" role="group" aria-label="@L("lang.label")">
+    @foreach (var language in Localizer.SupportedLanguages)
+    {
+        <button type="button" aria-pressed="@(Localizer.Language == language ? "true" : "false")"
+                title="@L($"lang.{language}")" @onclick="() => Select(language)">
+            @language.ToUpperInvariant()
+        </button>
+    }
+</div>
+
+@code {
+    // The cookie is written from the browser: it is what the next visit reads.
+    private async Task Select(string language)
+    {
+        Localizer.SetLanguage(language);
+        await JS.InvokeVoidAsync("ntiLang.save", language);
+    }
+}

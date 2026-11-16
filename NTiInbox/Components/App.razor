@@ -1,0 +1,56 @@
+@inherits Microsoft.AspNetCore.Components.ComponentBase
+@using System.Globalization
+@using NTiInbox.Localization
+<!DOCTYPE html>
+<html lang="@Language">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <ResourcePreloader />
+    <link rel="stylesheet" href="@Assets["app.css"]" />
+    <link rel="stylesheet" href="@Assets["NTiInbox.styles.css"]" />
+    <ImportMap />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <title>NTi Inbox</title>
+    <script>
+        // The theme is applied before the first paint, otherwise the page would flash
+        // in the wrong theme. Dark is the default.
+        (function () {
+            var choice = "dark";
+            try { choice = localStorage.getItem("nti-inbox-theme") || "dark"; } catch (e) { }
+            var dark = choice === "dark"
+                || (choice === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+            document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+        })();
+    </script>
+    <script src="js/lang.js"></script>
+    <HeadOutlet @rendermode="InteractiveNoPrerender" />
+</head>
+
+<body>
+    <Routes @rendermode="InteractiveNoPrerender" InitialLanguage="@Language" />
+    <div id="blazor-error-ui" data-nosnippet>
+        @T("ui.unexpectedError")
+        <a href="." class="nti-reload">@T("ui.reload")</a>
+        <span class="nti-dismiss">&times;</span>
+    </div>
+    <ReconnectModal />
+    <script src="@Assets["_framework/blazor.web.js"]"></script>
+</body>
+
+</html>
+
+@code {
+    // All the application is interactive: the IBM i connection lives in the Blazor circuit,
+    // prerendering would have nothing to show and would cause a double render.
+    private static readonly InteractiveServerRenderMode InteractiveNoPrerender = new(prerender: false);
+
+    // Language picked by the request localization middleware (cookie, then browser).
+    private static string Language
+        => CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr" ? "fr" : Localizer.DefaultLanguage;
+
+    // This page is rendered outside the circuit, so it reads the dictionaries directly.
+    private static string T(string key) => Strings.Get(Language, key);
+}

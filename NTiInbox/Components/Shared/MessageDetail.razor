@@ -1,0 +1,232 @@
+@inject IbmiSession Connection
+
+@* Reading pane: message text, metadata, help, actions. *@
+@* The reply area only shows for a message that waits for a reply. *@
+
+<div class="nti-card" style="height:100%">
+    <div class="nti-card-body" style="padding-bottom:0">
+        <div class="nti-detail-head">
+            <SeverityBadge Severity="Message.MessageSeverity" Large="true" />
+            <span class="nti-msg-id">@MessageFormatter.DisplayId(Localizer, Message)</span>
+            <span class="nti-chip @MessageFormatter.TypeCssClass(Message.MessageType)">@MessageFormatter.TypeLabel(Localizer, Message.MessageType)</span>
+            @if (MessageFormatter.ReplyStatusLabel(Localizer, Message) is { } replyStatus)
+            {
+                <span class="nti-chip @MessageFormatter.ReplyStatusCssClass(Message)">@replyStatus</span>
+            }
+        </div>
+
+        <div class="nti-detail-text">@MessageFormatter.DisplayText(Localizer, Message)</div>
+
+        <dl class="nti-detail-meta">
+            <dt>@L("detail.severity")</dt>
+            <dd>@Message.MessageSeverity, @MessageFormatter.SeverityLabel(Localizer, Message.MessageSeverity)</dd>
+
+            <dt>@L("detail.sentOn")</dt>
+            <dd>@MessageFormatter.FullStamp(Localizer, Message)</dd>
+
+            @if (_senderJob is not null)
+            {
+                <dt>@L("detail.senderJob")</dt>
+                <dd>
+                    @* The qualified name opens the job panel: it is the natural gesture *@
+                    @* when a message raises questions, and it avoids leaving for WRKJOB. *@
+                    <button class="nti-link-button nti-mono" type="button" @onclick="() => OnOpenJob.InvokeAsync(_senderJob)"
+                            title="@L("detail.senderJob.tooltip")">
+                        @_senderJob.Qualified
+                        <Icon Name="chevron-right" Size="13" />
+                    </button>
+                </dd>
+            }
+            else if (!string.IsNullOrWhiteSpace(Message.SenderJob))
+            {
+                <dt>@L("detail.senderJob")</dt>
+                <dd class="nti-mono">@Message.SenderJob</dd>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(Message.SenderUserProfile))
+            {
+                <dt>@L("detail.senderProfile")</dt>
+                <dd class="nti-mono">@Message.SenderUserProfile</dd>
+            }
+
+            <dt>@L("detail.queue")</dt>
+            <dd class="nti-mono">@Message.MessageLibrary/@Message.MessageQueue</dd>
+
+            @if (!string.IsNullOrWhiteSpace(Message.MessageFileName))
+            {
+                <dt>@L("detail.messageFile")</dt>
+                <dd class="nti-mono">@(string.IsNullOrWhiteSpace(Message.MessageFileLibraryUsed) ? Message.MessageFileLibrarySpecified : Message.MessageFileLibraryUsed)/@Message.MessageFileName</dd>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(Message.MessageId)
+                && MessageFormatter.DisplayReplacementData(Message) is { } replacementData)
+            {
+                <dt>@L("detail.replacementData")</dt>
+                <dd class="nti-mono nti-replacement-data">@replacementData</dd>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(Message.DefaultReply))
+            {
+                <dt>@L("detail.defaultReply")</dt>
+                <dd class="nti-mono">@Message.DefaultReply</dd>
+            }
+        </dl>
+
+        @if (_hasHelp)
+        {
+            <div class="nti-row" style="padding:14px 18px 8px 18px">
+                <span class="nti-section-label">@L("detail.help")</span>
+                <span class="nti-grow"></span>
+                <button class="nti-btn nti-btn-ghost nti-btn-sm" type="button" @onclick="ToggleHelp" disabled="@HelpLoading">
+                    @if (HelpLoading)
+                    {
+                        <span class="nti-loader"></span>
+                    }
+                    @(_showHelp ? L("detail.help.hide") : L("detail.help.show"))
+                </button>
+            </div>
+
+            @if (_showHelp && !string.IsNullOrWhiteSpace(Help))
+            {
+                <div class="nti-detail-help">@Help</div>
+            }
+            else if (_showHelp && !HelpLoading)
+            {
+                <p class="nti-small nti-muted" style="margin:0 18px 14px 18px">@L("detail.help.none")</p>
+            }
+        }
+    </div>
+
+    @if (_waiting)
+    {
+        <div class="nti-reply-box">
+            <div class="nti-reply-label">
+                <Icon Name="reply" Size="14" />
+                @L("detail.reply.waiting")
+                @if (!string.IsNullOrWhiteSpace(Message.DefaultReply))
+                {
+                    <span class="nti-muted" style="font-weight:400">, @L("detail.reply.default", Message.DefaultReply)</span>
+                }
+            </div>
+            <div class="nti-reply-line">
+                <input type="text" class="nti-input-mono" placeholder="@L("detail.reply.placeholder")" aria-label="@L("detail.reply.placeholder")"
+                       @bind="_reply" @bind:event="oninput"
+                       @onkeydown="OnReplyKeyDown" disabled="@Busy" />
+                <button class="nti-btn nti-btn-primary" type="button" @onclick="SendReply"
+                        disabled="@(Busy || string.IsNullOrWhiteSpace(_reply))">
+                    @if (Busy)
+                    {
+                        <span class="nti-loader"></span>
+                    }
+                    else
+                    {
+                        <Icon Name="send" Size="14" />
+                    }
+                    @L("detail.reply.send")
+                </button>
+            </div>
+        </div>
+    }
+
+    <div class="nti-detail-actions">
+        <button class="nti-btn nti-btn-sm" type="button" @onclick="OnRefresh" disabled="@Busy">
+            <Icon Name="refresh" Size="14" />
+            @L("inbox.refresh")
+        </button>
+        <span class="nti-grow"></span>
+        <button class="nti-btn nti-btn-sm nti-btn-ghost-danger" type="button" @onclick="OnDelete"
+                disabled="@Busy">
+            <Icon Name="trash" Size="14" />
+            @L("common.delete")
+        </button>
+    </div>
+</div>
+
+@code {
+    /// <summary>Message shown.</summary>
+    [Parameter, EditorRequired] public QueueMessage Message { get; set; } = default!;
+
+    /// <summary>Disables the actions while a call is running.</summary>
+    [Parameter] public bool Busy { get; set; }
+
+    /// <summary>Called with the text of the reply.</summary>
+    [Parameter] public EventCallback<string> OnReply { get; set; }
+
+    /// <summary>Called to delete the shown message.</summary>
+    [Parameter] public EventCallback OnDelete { get; set; }
+
+    /// <summary>Called to reread the queue.</summary>
+    [Parameter] public EventCallback OnRefresh { get; set; }
+
+    /// <summary>Message help, loaded on demand.</summary>
+    [Parameter] public string? Help { get; set; }
+
+    /// <summary>True while the help is being read.</summary>
+    [Parameter] public bool HelpLoading { get; set; }
+
+    /// <summary>Called when the help is shown for the first time.</summary>
+    [Parameter] public EventCallback OnLoadHelp { get; set; }
+
+    /// <summary>Called when the sender job is clicked.</summary>
+    [Parameter] public EventCallback<JobRef> OnOpenJob { get; set; }
+
+    private JobRef? _senderJob => MessageQueueService.ParseSenderJob(Message.SenderJob);
+
+    private string _reply = string.Empty;
+    private bool _showHelp;
+    private QueueMessage? _lastMessage;
+
+    private bool _waiting => MessageFormatter.IsWaitingForReply(Message);
+
+    private bool _hasHelp => !string.IsNullOrWhiteSpace(Message.MessageId);
+
+    protected override void OnInitialized() => Connection.Changed += OnConnectionChanged;
+
+    private void OnConnectionChanged() => _ = InvokeAsync(StateHasChanged);
+
+    private async Task ToggleHelp()
+    {
+        _showHelp = !_showHelp;
+
+        if (_showHelp && string.IsNullOrWhiteSpace(Help))
+        {
+            await OnLoadHelp.InvokeAsync();
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        // The reply area and the help are reset only when the message changes,
+        // otherwise a mere parent render would erase what is being typed.
+        if (!ReferenceEquals(_lastMessage, Message))
+        {
+            _lastMessage = Message;
+            _reply = string.Empty;
+            _showHelp = false;
+        }
+    }
+
+    private async Task OnReplyKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter" && !string.IsNullOrWhiteSpace(_reply))
+        {
+            await SendReply();
+        }
+    }
+
+    private async Task SendReply()
+    {
+        if (string.IsNullOrWhiteSpace(_reply))
+        {
+            return;
+        }
+
+        await OnReply.InvokeAsync(_reply.Trim());
+    }
+
+    public override void Dispose()
+    {
+        Connection.Changed -= OnConnectionChanged;
+        base.Dispose();
+    }
+}

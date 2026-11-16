@@ -1,0 +1,181 @@
+@inject InboxState Inbox
+@inject IbmiSession Connection
+@inject MessageQueueService Service
+@inject DialogService Dialogs
+@inject ToastService Toasts
+@inject NavigationManager Navigation
+
+@* Sidebar: the message queues play the role of the folders of a mail client. *@
+
+<nav class="nti-sidebar" aria-label="@L("sidebar.queues")">
+    <button class="nti-sidebar-compose" type="button" @onclick="() => Dialogs.OpenCompose()">
+        <Icon Name="compose" Size="15" />
+        @L("sidebar.newMessage")
+    </button>
+
+    <div class="nti-sidebar-section">
+        <span>@L("sidebar.queues")</span>
+        <button type="button" title="@L("sidebar.reload")" aria-label="@L("sidebar.reload")" @onclick="LoadQueues">
+            @if (_loading)
+            {
+                <span class="nti-loader"></span>
+            }
+            else
+            {
+                <Icon Name="refresh" Size="14" />
+            }
+        </button>
+    </div>
+
+    @* Local filter: it triggers no search, it simply hides rows. *@
+    <div class="nti-sidebar-filter">
+        <span class="nti-sidebar-filter-glyph"><Icon Name="search" Size="14" /></span>
+        <input type="text" placeholder="@L("sidebar.filter")" aria-label="@L("sidebar.filter")" value="@_search" @oninput="OnSearchInput" />
+    </div>
+
+    @* Search on the system: a library or a special value. *@
+    <div class="nti-sidebar-library">
+        <label for="discovery-library">@L("common.library")</label>
+        <input id="discovery-library" type="text" class="nti-input-mono" placeholder="*LIBL"
+               @bind="_library" @bind:event="oninput" @onkeydown="OnLibraryKeyDown"
+               title="@L("sidebar.library.tooltip")" />
+    </div>
+
+    <div class="nti-sidebar-scroll">
+        @if (Inbox.Queues.Count == 0 && !_loading)
+        {
+            <p class="nti-small nti-muted" style="padding:0 9px">@L("sidebar.none", Inbox.DiscoveryLibrary)</p>
+        }
+        else if (FilteredQueues.Count == 0 && !_loading)
+        {
+            <p class="nti-small nti-muted" style="padding:0 9px">@L("sidebar.noMatch", _search)</p>
+        }
+
+        @foreach (var queue in FilteredQueues)
+        {
+            var pending = Inbox.PendingCount(queue);
+            var total = Inbox.TotalCount(queue);
+            var isCurrent = Inbox.CurrentQueue?.Equals(queue) == true;
+
+            <button class="nti-sidebar-item @(isCurrent ? "active" : "")" type="button"
+                    title="@($"{queue.Key}{(string.IsNullOrWhiteSpace(queue.Description) ? "" : ": " + queue.Description)}")"
+                    @onclick="() => SelectQueue(queue)">
+                <Icon Name="@(isCurrent ? "inbox" : "folder")" Size="15" />
+                <span class="nti-label">@queue.Name</span>
+                @if (pending is > 0)
+                {
+                    <span class="nti-count nti-alert">@pending</span>
+                }
+                else if (total is not null)
+                {
+                    <span class="nti-count">@total</span>
+                }
+            </button>
+        }
+    </div>
+
+    <div class="nti-sidebar-section"><span>@L("sidebar.tools")</span></div>
+
+    <button class="nti-sidebar-item" type="button" @onclick="() => Dialogs.OpenAttributes()" disabled="@(Inbox.CurrentQueue is null)">
+        <Icon Name="sliders" Size="15" />
+        <span class="nti-label">@L("sidebar.attributes")</span>
+    </button>
+
+    <button class="nti-sidebar-item nti-danger" type="button" @onclick="() => Dialogs.OpenBreak()">
+        <Icon Name="alert-triangle" Size="15" />
+        <span class="nti-label">@L("sidebar.break")</span>
+    </button>
+
+    @if (_pendingTotal > 0)
+    {
+        <div class="nti-sidebar-footer">
+            <span class="nti-count nti-alert" title="@Plural("sidebar.pending", _pendingTotal)">@_pendingTotal</span>
+            <span class="nti-small nti-muted">@Plural("sidebar.pending", _pendingTotal)</span>
+        </div>
+    }
+</nav>
+
+@code {
+    private bool _loading;
+    private string _library = "*LIBL";
+    private string _search = string.Empty;
+
+    /// <summary>Queues actually shown, after the local filter.</summary>
+    private List<MessageQueueRef> FilteredQueues =>
+        string.IsNullOrWhiteSpace(_search)
+            ? [.. Inbox.Queues]
+            : [.. Inbox.Queues.Where(q =>
+                q.Name.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase)
+                || q.Library.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase))];
+
+    private void OnSearchInput(ChangeEventArgs args) => _search = args.Value?.ToString() ?? string.Empty;
+
+    /// <summary>
+    /// Messages awaiting a reply, across the queues already read. A queue never opened
+    /// does not count: nothing is known about it.
+    /// </summary>
+    private int _pendingTotal => Inbox.Queues.Sum(q => Inbox.PendingCount(q) ?? 0);
+
+    protected override async Task OnInitializedAsync()
+    {
+        Inbox.Changed += OnSessionChanged;
+
+        // The library comes from the sign-on (saved profile or configuration).
+        _library = Inbox.DiscoveryLibrary;
+
+        if (Connection.IsConnected && Inbox.Queues.Count == 0)
+        {
+            await LoadQueues();
+        }
+    }
+
+    private async Task LoadQueues()
+    {
+        if (_loading || !Connection.IsConnected)
+        {
+            return;
+        }
+
+        _loading = true;
+
+        try
+        {
+            Inbox.DiscoveryLibrary = string.IsNullOrWhiteSpace(_library) ? "*LIBL" : _library.Trim().ToUpperInvariant();
+            Inbox.SetQueues(await Service.DiscoverQueuesAsync(Inbox.DiscoveryLibrary));
+        }
+        catch (Exception ex)
+        {
+            Toasts.Error(L("sidebar.toast.failed"), ex);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OnLibraryKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter")
+        {
+            await LoadQueues();
+        }
+    }
+
+    private void SelectQueue(MessageQueueRef queue)
+    {
+        Inbox.SelectQueue(queue);
+
+        if (!new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/').Equals(string.Empty, StringComparison.Ordinal))
+        {
+            Navigation.NavigateTo("");
+        }
+    }
+
+    private void OnSessionChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public override void Dispose()
+    {
+        Inbox.Changed -= OnSessionChanged;
+        base.Dispose();
+    }
+}

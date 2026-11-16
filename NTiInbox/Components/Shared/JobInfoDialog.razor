@@ -1,0 +1,229 @@
+@inject MessageQueueService Service
+@inject InboxState Inbox
+@inject DialogService Dialogs
+@inject ToastService Toasts
+@inject NavigationManager Navigation
+
+@* Panel of the sender job of a message, read through QUSRJOBI. *@
+@* It answers the question a message raises: what was this job doing. *@
+
+<ModalDialog Visible="_visible" Title="@_title" IconName="terminal" Wide="true" OnClose="Close">
+    <Body>
+        @if (_loading)
+        {
+            <div class="nti-loading-line">
+                <span class="nti-loader"></span>
+                @L("job.loading")
+            </div>
+        }
+        else if (_job is null && _ended)
+        {
+            <EmptyState IconName="clock" Title="@L("job.ended.title")" Description="@L("job.ended.text")" />
+        }
+        else if (_job is null)
+        {
+            <EmptyState IconName="info" Title="@L("job.unreadable.title")" Description="@L("job.unreadable.text")" />
+        }
+        else
+        {
+            <div class="nti-row nti-wrap" style="gap:8px">
+                <span class="nti-mono" style="font-size:16px;font-weight:600">@_reference?.Qualified</span>
+                <span class="nti-chip @JobFormatter.StatusCssClass(_job.JobStatus)">@JobFormatter.StatusLabel(Localizer, _job.JobStatus)</span>
+                <span class="nti-chip nti-chip-neutral">@JobFormatter.TypeLabel(Localizer, _job.JobType)</span>
+                @if (JobFormatter.SubtypeLabel(Localizer, _job.JobSubtype) is { } subtype)
+                {
+                    <span class="nti-chip nti-chip-neutral">@subtype</span>
+                }
+            </div>
+
+            @if (JobFormatter.IsWaitingForMessage(_job))
+            {
+                <div class="nti-danger-notice nti-warning">
+                    <span class="nti-glyph"><Icon Name="clock" Size="18" /></span>
+                    <span>
+                        @L("job.msgw")
+                        @if (!string.IsNullOrWhiteSpace(_job.MessageQueueName?.Trim()))
+                        {
+                            <text>, @L("job.msgw.queue") <span class="nti-mono">@_job.MessageQueueLibraryName?.Trim()/@_job.MessageQueueName?.Trim()</span></text>
+                        }
+                        <text>.</text>
+                    </span>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(_job.MessageQueueName?.Trim()))
+                {
+                    <button class="nti-btn nti-btn-sm" type="button" @onclick="OpenJobQueue">
+                        <Icon Name="inbox" Size="14" />
+                        @L("job.openQueue")
+                    </button>
+                }
+            }
+
+            <div>
+                <div class="nti-section-label">@L("job.section.doing")</div>
+                <div class="nti-attr-grid" style="margin-top:6px">
+                    <div class="nti-attr-tile">
+                        <div class="nti-attr-label">@L("job.function")</div>
+                        <div class="nti-attr-value" style="font-size:13px">@JobFormatter.FunctionLabel(Localizer, _job)</div>
+                    </div>
+                    <div class="nti-attr-tile">
+                        <div class="nti-attr-label">@L("job.activeStatus")</div>
+                        <div class="nti-attr-value" style="font-size:13px">@JobFormatter.ActiveStatusLabel(Localizer, _job.ActiveJobStatus)</div>
+                    </div>
+                    <div class="nti-attr-tile">
+                        <div class="nti-attr-label">@L("job.subsystem")</div>
+                        <div class="nti-attr-value nti-mono">@JobFormatter.OrDash(_job.SubsystemDescriptionName)</div>
+                    </div>
+                    <div class="nti-attr-tile">
+                        <div class="nti-attr-label">@L("job.pool")</div>
+                        <div class="nti-attr-value nti-mono">@JobFormatter.OrDash(_job.MemoryPoolName)</div>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <div class="nti-section-label">@L("job.section.usage")</div>
+                <div class="nti-attr-grid" style="margin-top:6px">
+                    <div class="nti-attr-tile">
+                        <div class="nti-attr-label">@L("job.cpu")</div>
+                        <div class="nti-attr-value">@JobFormatter.CpuTime(Localizer, _job.ProcessingUnitTimeUsed)</div>
+                    </div>
+                    <div class="nti-attr-tile">
+                        <div class="nti-attr-label">@L("job.io")</div>
+                        <div class="nti-attr-value">@_job.NumberOfAuxiliaryIORequests.ToString("N0", Localizer.Culture)</div>
+                    </div>
+                    <div class="nti-attr-tile">
+                        <div class="nti-attr-label">@L("job.pageFaults")</div>
+                        <div class="nti-attr-value">@_job.PageFaults.ToString("N0", Localizer.Culture)</div>
+                    </div>
+                    <div class="nti-attr-tile">
+                        <div class="nti-attr-label">@L("job.threads")</div>
+                        <div class="nti-attr-value">@_job.ThreadCount</div>
+                    </div>
+                    <div class="nti-attr-tile">
+                        <div class="nti-attr-label">@L("job.priority")</div>
+                        <div class="nti-attr-value">@_job.RunPriority</div>
+                    </div>
+                    <div class="nti-attr-tile">
+                        <div class="nti-attr-label">@L("job.transactions")</div>
+                        <div class="nti-attr-value">@_job.NumberOfInteractiveTransactions.ToString("N0", Localizer.Culture)</div>
+                    </div>
+                </div>
+            </div>
+
+            @if (_job.NumberOfDatabaseLockWaits + _job.NumberOfNondatabaseLockWaits + _job.NumberOfInternalMachineLockWaits > 0)
+            {
+                <div>
+                    <div class="nti-section-label">@L("job.section.locks")</div>
+                    <div class="nti-attr-grid" style="margin-top:6px">
+                        <div class="nti-attr-tile">
+                            <div class="nti-attr-label">@L("job.locks.database")</div>
+                            <div class="nti-attr-value" style="font-size:13px">
+                                @Plural("job.waits", _job.NumberOfDatabaseLockWaits)
+                                <span class="nti-muted">@L("job.waits.for", JobFormatter.CpuTime(Localizer, _job.TimeSpentOnDatabaseLockWaits))</span>
+                            </div>
+                        </div>
+                        <div class="nti-attr-tile">
+                            <div class="nti-attr-label">@L("job.locks.nondatabase")</div>
+                            <div class="nti-attr-value" style="font-size:13px">
+                                @Plural("job.waits", _job.NumberOfNondatabaseLockWaits)
+                                <span class="nti-muted">@L("job.waits.for", JobFormatter.CpuTime(Localizer, _job.TimeSpentOnNondatabaseLockWaits))</span>
+                            </div>
+                        </div>
+                        <div class="nti-attr-tile">
+                            <div class="nti-attr-label">@L("job.locks.machine")</div>
+                            <div class="nti-attr-value" style="font-size:13px">
+                                @Plural("job.waits", _job.NumberOfInternalMachineLockWaits)
+                                <span class="nti-muted">@L("job.waits.for", JobFormatter.CpuTime(Localizer, _job.TimeSpentOnInternalMachineLockWaits))</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </Body>
+    <Footer>
+        <button class="nti-btn" type="button" @onclick="Close">@L("common.close")</button>
+        <button class="nti-btn nti-btn-primary" type="button" @onclick="Load" disabled="@_loading">
+            <Icon Name="refresh" Size="14" />
+            @L("inbox.refresh")
+        </button>
+    </Footer>
+</ModalDialog>
+
+@code {
+    private JobInformation? _job;
+    private JobRef? _reference;
+    private bool _visible;
+    private bool _loading;
+
+    /// <summary>True when the job simply finished running: this is not an error.</summary>
+    private bool _ended;
+
+    private string _title => _reference is null ? L("job.title") : L("job.titleOf", _reference.Name);
+
+    protected override void OnInitialized() => Dialogs.JobRequested += Open;
+
+    private async void Open(JobRef job)
+    {
+        _reference = job;
+        _job = null;
+        _visible = true;
+
+        await InvokeAsync(async () =>
+        {
+            StateHasChanged();
+            await Load();
+            StateHasChanged();
+        });
+    }
+
+    private async Task Load()
+    {
+        if (_reference is null)
+        {
+            return;
+        }
+
+        _loading = true;
+        _ended = false;
+
+        try
+        {
+            // An ended job raises no exception, the service returns null.
+            _job = await Service.GetJobAsync(_reference);
+            _ended = _job is null;
+        }
+        catch (Exception ex)
+        {
+            _job = null;
+            Toasts.Error(L("job.toast.failed", _reference.Name), ex);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void OpenJobQueue()
+    {
+        if (_job is null || string.IsNullOrWhiteSpace(_job.MessageQueueName))
+        {
+            return;
+        }
+
+        var library = string.IsNullOrWhiteSpace(_job.MessageQueueLibraryName) ? "QSYS" : _job.MessageQueueLibraryName!.Trim();
+        Inbox.AddQueue(new MessageQueueRef(_job.MessageQueueName!.Trim(), library));
+
+        _visible = false;
+        Navigation.NavigateTo("/");
+    }
+
+    private void Close() => _visible = false;
+
+    public override void Dispose()
+    {
+        Dialogs.JobRequested -= Open;
+        base.Dispose();
+    }
+}

@@ -1,0 +1,44 @@
+@implements IDisposable
+@inject IbmiSession Connection
+@inject InboxState Inbox
+
+@* Icon rail on the far left: navigation, language and theme. The connected user is in the top bar. *@
+
+<aside class="nti-rail">
+    <nav class="nti-rail-nav" aria-label="@L("nav.label")">
+        @* The inbox comes first, with the count of messages awaiting a reply. *@
+        <NavLink class="nti-rail-link nti-rail-home" href="" Match="NavLinkMatch.All" title="@L("nav.inbox")" aria-label="@L("nav.inbox")">
+            <Icon Name="mail" Size="20" />
+            @if (_pending > 0)
+            {
+                <span class="nti-rail-badge">@(_pending > 99 ? "99+" : _pending.ToString())</span>
+            }
+        </NavLink>
+        <NavLink class="nti-rail-link" href="catalog" title="@L("nav.catalog")" aria-label="@L("nav.catalog")">
+            <Icon Name="book" Size="20" />
+        </NavLink>
+        <NavLink class="nti-rail-link" href="profile" title="@L("nav.profile")" aria-label="@L("nav.profile")">
+            <Icon Name="user" Size="20" />
+        </NavLink>
+    </nav>
+
+    <div class="nti-rail-foot">
+        <LanguageToggle />
+        <ThemeToggle />
+    </div>
+</aside>
+
+@code {
+    // Messages awaiting a reply across the queues already read.
+    private int _pending => Inbox.Queues.Sum(q => Inbox.PendingCount(q) ?? 0);
+
+    protected override void OnInitialized() => Inbox.Changed += OnSessionChanged;
+
+    private void OnSessionChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public override void Dispose()
+    {
+        Inbox.Changed -= OnSessionChanged;
+        base.Dispose();
+    }
+}

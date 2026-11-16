@@ -1,0 +1,43 @@
+@inject ToastService Toasts
+
+@* Notifications stacked at the bottom right. Errors stay until dismissed. *@
+
+@{
+    var visible = Toasts.Toasts;
+}
+
+@if (visible.Count > 0)
+{
+    <div class="nti-toast-host">
+        @foreach (var toast in visible)
+        {
+            <div class="nti-toast @toast.CssClass" role="@(toast.Kind == ToastKind.Error ? "alert" : "status")">
+                <div class="nti-toast-body">
+                    <strong>@toast.Title</strong>
+                    @if (!string.IsNullOrWhiteSpace(toast.Detail))
+                    {
+                        <span>@toast.Detail</span>
+                    }
+                </div>
+                <button class="nti-toast-close" type="button" aria-label="@L("common.close")" @onclick="() => Toasts.Dismiss(toast.Id)">
+                    <Icon Name="close" Size="15" />
+                </button>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    protected override void OnInitialized()
+    {
+        Toasts.Changed += OnChanged;
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    public override void Dispose()
+    {
+        Toasts.Changed -= OnChanged;
+        base.Dispose();
+    }
+}

@@ -1,0 +1,29 @@
+# Visual Studio and IDE state
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# Build output
+bin/
+obj/
+publish/
+
+# Local data written at run time (saved connection profiles)
+App_Data/
+
+# Secrets and local configuration
+secrets.json
+appsettings.*.local.json
+*.pfx
+*.snk
+*.pem
+*.key
+.env
+.env.*
+
+# Logs and OS files
+*.log
+Thumbs.db
+.DS_Store

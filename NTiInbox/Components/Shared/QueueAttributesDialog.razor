@@ -1,0 +1,155 @@
+@inject MessageQueueService Messages
+@inject InboxState Inbox
+@inject DialogService Dialogs
+@inject ToastService Toasts
+
+@* Attributes of the current queue, through QMHRMQAT. *@
+
+<ModalDialog Visible="_visible" Title="@_title" IconName="sliders" Wide="true" OnClose="Close">
+    <Body>
+        @if (_loading)
+        {
+            <div class="nti-loading-line">
+                <span class="nti-loader"></span>
+                @L("attr.loading")
+            </div>
+        }
+        else if (_attributes is null)
+        {
+            <EmptyState IconName="info" Title="@L("attr.none.title")" Description="@L("attr.none.text")" />
+        }
+        else
+        {
+            <div class="nti-attr-grid">
+                <div class="nti-attr-tile">
+                    <div class="nti-attr-label">@L("attr.messages")</div>
+                    <div class="nti-attr-value">@_attributes.NumberOfMessagesOnQueue</div>
+                </div>
+                <div class="nti-attr-tile">
+                    <div class="nti-attr-label">@L("attr.delivery")</div>
+                    <div class="nti-attr-value nti-mono">@MessageFormatter.DeliveryLabel(Localizer, _attributes.DeliveryMethod)</div>
+                </div>
+                <div class="nti-attr-tile">
+                    <div class="nti-attr-label">@L("attr.severityFilter")</div>
+                    <div class="nti-attr-value">@_attributes.SeverityCodeFilter</div>
+                </div>
+                <div class="nti-attr-tile">
+                    <div class="nti-attr-label">@L("attr.size")</div>
+                    <div class="nti-attr-value">@FormatSize(_attributes.CurrentStorageSize)</div>
+                </div>
+                <div class="nti-attr-tile">
+                    <div class="nti-attr-label">@L("attr.increments")</div>
+                    <div class="nti-attr-value">@L("attr.incrementsValue", _attributes.NumberOfIncrements, _attributes.MaximumIncrements)</div>
+                </div>
+                <div class="nti-attr-tile">
+                    <div class="nti-attr-label">@L("attr.fullAction")</div>
+                    <div class="nti-attr-value nti-mono">@(string.IsNullOrWhiteSpace(_attributes.MessageQueueFullAction) ? L("common.unset") : _attributes.MessageQueueFullAction.Trim())</div>
+                </div>
+                <div class="nti-attr-tile">
+                    <div class="nti-attr-label">CCSID</div>
+                    <div class="nti-attr-value">@_attributes.CCSID</div>
+                </div>
+                <div class="nti-attr-tile">
+                    <div class="nti-attr-label">@L("attr.alerts")</div>
+                    <div class="nti-attr-value">@MessageFormatter.YesNo(Localizer, _attributes.AllowAlerts)</div>
+                </div>
+                <div class="nti-attr-tile">
+                    <div class="nti-attr-label">@L("attr.force")</div>
+                    <div class="nti-attr-value nti-mono">@MessageFormatter.YesNo(Localizer, _attributes.ForceToAuxiliaryStorage)</div>
+                </div>
+                <div class="nti-attr-tile">
+                    <div class="nti-attr-label">@L("attr.otherJobs")</div>
+                    <div class="nti-attr-value nti-mono">@(string.IsNullOrWhiteSpace(_attributes.AllowOtherJobsToReply) ? L("common.unset") : _attributes.AllowOtherJobsToReply.Trim())</div>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(_attributes.BreakHandlingProgramName?.Trim()))
+            {
+                <div class="nti-attr-tile">
+                    <div class="nti-attr-label">@L("attr.breakProgram")</div>
+                    <div class="nti-attr-value nti-mono">@_attributes.BreakHandlingProgramLibrary?.Trim()/@_attributes.BreakHandlingProgramName?.Trim()</div>
+                </div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(_attributes.TextDescription?.Trim()))
+            {
+                <div class="nti-attr-tile">
+                    <div class="nti-attr-label">@L("attr.description")</div>
+                    <div class="nti-attr-value" style="font-size:13px;font-weight:400">@_attributes.TextDescription!.Trim()</div>
+                </div>
+            }
+        }
+    </Body>
+    <Footer>
+        <button class="nti-btn" type="button" @onclick="Close">@L("common.close")</button>
+        <button class="nti-btn nti-btn-primary" type="button" @onclick="Load" disabled="@_loading">
+            <Icon Name="refresh" Size="14" />
+            @L("inbox.refresh")
+        </button>
+    </Footer>
+</ModalDialog>
+
+@code {
+    private QueueAttributes? _attributes;
+    private MessageQueueRef? _queue;
+    private bool _visible;
+    private bool _loading;
+
+    private string _title => _queue is null ? L("attr.title") : L("attr.titleOf", _queue.Key);
+
+    protected override void OnInitialized() => Dialogs.AttributesRequested += Open;
+
+    private async void Open()
+    {
+        _queue = Inbox.CurrentQueue;
+        _attributes = null;
+        _visible = true;
+
+        await InvokeAsync(async () =>
+        {
+            StateHasChanged();
+            await Load();
+            StateHasChanged();
+        });
+    }
+
+    private async Task Load()
+    {
+        if (_queue is null)
+        {
+            return;
+        }
+
+        _loading = true;
+
+        try
+        {
+            _attributes = await Messages.GetAttributesAsync(_queue);
+        }
+        catch (Exception ex)
+        {
+            _attributes = null;
+            Toasts.Error(L("attr.toast.failed", _queue.Key), ex);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void Close() => _visible = false;
+
+    // Size in the culture of the current language, the unit comes from the translations.
+    private string FormatSize(int bytes) => bytes switch
+    {
+        >= 1024 * 1024 => $"{(bytes / (1024d * 1024d)).ToString("0.0", Localizer.Culture)} {L("size.mb")}",
+        >= 1024 => $"{(bytes / 1024d).ToString("0.0", Localizer.Culture)} {L("size.kb")}",
+        _ => $"{bytes} {L("size.bytes")}"
+    };
+
+    public override void Dispose()
+    {
+        Dialogs.AttributesRequested -= Open;
+        base.Dispose();
+    }
+}

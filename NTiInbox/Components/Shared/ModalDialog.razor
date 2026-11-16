@@ -1,0 +1,120 @@
+@* Shell shared by every modal: header, scrolling body, action footer. *@
+
+@if (Visible)
+{
+    <div class="nti-modal-backdrop" @onclick="OnBackdropClick">
+        <div class="nti-modal @(Wide ? "nti-wide" : "")" role="dialog" aria-modal="true" aria-label="@Title" @onclick:stopPropagation="true">
+            <div class="nti-modal-header">
+                <div class="nti-modal-glyph @(Danger ? "nti-danger" : "")">
+                    <Icon Name="@IconName" Size="18" />
+                </div>
+                <h2>@Title</h2>
+                <button class="nti-btn nti-btn-ghost nti-btn-icon" type="button" aria-label="@L("common.close")" @onclick="Close">
+                    <Icon Name="close" Size="16" />
+                </button>
+            </div>
+
+            <div class="nti-modal-body">
+                @Body
+            </div>
+
+            <div class="nti-modal-footer">
+                @Footer
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    /// <summary>Shows or hides the modal.</summary>
+    [Parameter] public bool Visible { get; set; }
+
+    /// <summary>Title shown in the header.</summary>
+    [Parameter] public string Title { get; set; } = string.Empty;
+
+    /// <summary>Header icon.</summary>
+    [Parameter] public string IconName { get; set; } = "message";
+
+    /// <summary>Colors the header red, for a destructive action.</summary>
+    [Parameter] public bool Danger { get; set; }
+
+    /// <summary>Widens the modal.</summary>
+    [Parameter] public bool Wide { get; set; }
+
+    /// <summary>Main content.</summary>
+    [Parameter] public RenderFragment? Body { get; set; }
+
+    /// <summary>Buttons of the modal footer.</summary>
+    [Parameter] public RenderFragment? Footer { get; set; }
+
+    /// <summary>Called on close, through the cross or the backdrop.</summary>
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    [Inject] private IJSRuntime Js { get; set; } = default!;
+
+    private readonly string _id = Guid.NewGuid().ToString("N");
+    private DotNetObjectReference<ModalDialog>? _self;
+    private IJSObjectReference? _module;
+    private bool _listening;
+
+    private async Task Close() => await OnClose.InvokeAsync();
+
+    private async Task OnBackdropClick() => await Close();
+
+    /// <summary>Called by the browser when Escape is pressed on the topmost modal.</summary>
+    [JSInvokable]
+    public Task Escape() => InvokeAsync(Close);
+
+    // The Escape listener only exists while the modal is visible.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (Visible == _listening)
+        {
+            return;
+        }
+
+        _listening = Visible;
+
+        try
+        {
+            _module ??= await Js.InvokeAsync<IJSObjectReference>("import", "./js/modal.js");
+
+            if (Visible)
+            {
+                _self ??= DotNetObjectReference.Create(this);
+                await _module.InvokeVoidAsync("register", _id, _self);
+            }
+            else
+            {
+                await _module.InvokeVoidAsync("unregister", _id);
+            }
+        }
+        catch (Exception ex) when (ex is JSDisconnectedException or TaskCanceledException)
+        {
+            // The circuit is closed, there is no browser left to listen to.
+        }
+    }
+
+    public override void Dispose()
+    {
+        if (_module is not null && _listening)
+        {
+            _ = Unregister(_module);
+        }
+
+        _self?.Dispose();
+        base.Dispose();
+    }
+
+    private async Task Unregister(IJSObjectReference module)
+    {
+        try
+        {
+            await module.InvokeVoidAsync("unregister", _id);
+        }
+        catch (Exception ex) when (ex is JSDisconnectedException or TaskCanceledException)
+        {
+            // Nothing to release once the circuit is gone.
+        }
+    }
+}

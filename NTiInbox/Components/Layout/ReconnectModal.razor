@@ -1,0 +1,40 @@
+@inherits Microsoft.AspNetCore.Components.ComponentBase
+@using System.Globalization
+@using NTiInbox.Localization
+<script type="module" src="@Assets["Components/Layout/ReconnectModal.razor.js"]"></script>
+
+<dialog id="components-reconnect-modal" data-nosnippet>
+    <div class="components-reconnect-container">
+        <div class="components-rejoining-animation" aria-hidden="true">
+            <div></div>
+            <div></div>
+        </div>
+        <p class="components-reconnect-first-attempt-visible">
+            @T("reconnect.first")
+        </p>
+        <p class="components-reconnect-repeated-attempt-visible">
+            @T("reconnect.repeated.before") <span id="components-seconds-to-next-attempt"></span> @T("reconnect.repeated.after")
+        </p>
+        <p class="components-reconnect-failed-visible">
+            @T("reconnect.failed.line1")<br />@T("reconnect.failed.line2")
+        </p>
+        <button id="components-reconnect-button" class="components-reconnect-failed-visible">
+            @T("reconnect.retry")
+        </button>
+        <p class="components-pause-visible">
+            @T("reconnect.paused")
+        </p>
+        <p class="components-resume-failed-visible">
+            @T("reconnect.resumeFailed.line1")<br />@T("reconnect.resumeFailed.line2")
+        </p>
+        <button id="components-resume-button" class="components-pause-visible components-resume-failed-visible">
+            @T("reconnect.resume")
+        </button>
+    </div>
+</dialog>
+
+@code {
+    // Rendered by the static page, outside the circuit: read the dictionaries directly.
+    private static string T(string key)
+        => Strings.Get(CultureInfo.CurrentUICulture.TwoLetterISOLanguageName, key);
+}

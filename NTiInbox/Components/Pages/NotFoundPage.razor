@@ -1,0 +1,12 @@
+@page "/not-found"
+@layout MainLayout
+
+<PageTitle>@L("notFound.title") - NTi Inbox</PageTitle>
+
+<div class="nti-app-body">
+    <div class="nti-card" style="height:100%">
+        <EmptyState IconName="search" Title="@L("notFound.title")" Description="@L("notFound.text")">
+            <a class="nti-btn" href="">@L("error.backToInbox")</a>
+        </EmptyState>
+    </div>
+</div>

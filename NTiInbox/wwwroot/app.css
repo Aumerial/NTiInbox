@@ -1,0 +1,2770 @@
+/* NTi Inbox - main stylesheet */
+/* Direction: soft and airy. A tinted page, floating rounded cards with no hard borders, */
+/* pill-shaped controls and a single electric blue accent. The dark and light */
+/* themes only redefine the variables below. */
+
+:root {
+    /* Surfaces */
+    --c-page: #0d0f13;
+    --c-surface: #15181d;
+    --c-surface-alt: #1a1e24;
+    --c-surface-hover: #20252c;
+
+    /* Borders: faint, shadows do most of the separation */
+    --c-border: #232830;
+    --c-border-strong: #2f353f;
+    /* Text */
+    --c-text: #eef0f3;
+    --c-text-secondary: #a4abb7;
+    --c-text-muted: #6f7885;
+    /* Accent: electric blue */
+    --c-primary: #4d6bff;
+    --c-primary-hover: #6a85ff;
+    --c-on-primary: #ffffff;
+    --c-accent: #6f8cff;
+    --c-accent-hover: #8aa2ff;
+    --c-accent-soft: rgba(111, 140, 255, 0.14);
+    --c-accent-text: #a3b6ff;
+    --grad-accent: linear-gradient(135deg, #5b7bff 0%, #3b55f0 100%);
+    --grad-accent-hover: linear-gradient(135deg, #6f8bff 0%, #4a64ff 100%);
+    /* Roles */
+    --c-success: #4cc38a;
+    --c-success-soft: rgba(76, 195, 138, 0.14);
+    --c-info: #6aa8ff;
+    --c-info-soft: rgba(106, 168, 255, 0.14);
+    --c-warning: #f0b84f;
+    --c-warning-soft: rgba(240, 184, 79, 0.13);
+    --c-danger: #ef6b6b;
+    --c-danger-hover: #f58a8a;
+    --c-danger-soft: rgba(239, 107, 107, 0.13);
+    --c-purple: #a58bf5;
+    --c-purple-soft: rgba(165, 139, 245, 0.14);
+    /* Derived roles */
+    --c-on-accent: #ffffff;
+    --c-danger-strong: #f7a4a4;
+    --c-warning-border: rgba(240, 184, 79, 0.28);
+    --c-waiting-row: rgba(240, 184, 79, 0.06);
+    --c-waiting-row-hover: rgba(240, 184, 79, 0.10);
+    /* Depth */
+    --c-shadow-sm: rgba(0, 0, 0, 0.35);
+    --c-shadow-md: rgba(0, 0, 0, 0.45);
+    --c-shadow-lg: rgba(0, 0, 0, 0.6);
+    --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.035) inset, 0 12px 32px -14px rgba(0, 0, 0, 0.7);
+    --shadow-float: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 6px 18px -8px rgba(0, 0, 0, 0.7);
+    --c-backdrop: rgba(4, 5, 8, 0.68);
+    /* Soft colored glows behind the page */
+    --c-glow-a: rgba(70, 100, 255, 0.11);
+    --c-glow-b: rgba(150, 90, 255, 0.07);
+    /* Activity chart: soft tiers, each a light-to-deeper gradient */
+    --chart-low: #4fe0b0;
+    --chart-low-end: #23b98a;
+    --chart-info: #62b6ff;
+    --chart-info-end: #3a8fe8;
+    --chart-warning: #ffcd6b;
+    --chart-warning-end: #f0a93a;
+    --chart-critical: #ff8a96;
+    --chart-critical-end: #f0566a;
+    /* Geometry */
+    --radius-sm: 8px;
+    --radius: 12px;
+    --radius-lg: 20px;
+    --radius-pill: 999px;
+    /* Typography: Inter when installed, system fonts otherwise */
+    --font-sans: Inter, "Segoe UI", system-ui, -apple-system, sans-serif;
+    --font-mono: "Cascadia Mono", "SF Mono", Consolas, "Liberation Mono", monospace;
+    /* Chrome */
+    --app-max-width: 1560px;
+    --header-height: 64px;
+    --sidebar-width: 264px;
+    --rail-width: 76px;
+    --list-width: 400px;
+    --topbar-height: 56px;
+    color-scheme: dark;
+}
+
+/* ---------- Light theme ---------- */
+/* The attribute is set on the html element by a script placed before the first */
+/* paint, so the page never flashes in the wrong theme. */
+
+:root[data-theme="light"] {
+    --c-page: #edf1f6;
+    --c-surface: #ffffff;
+    --c-surface-alt: #f6f8fb;
+    --c-surface-hover: #eff2f7;
+
+    --c-border: #e6eaf0;
+    --c-border-strong: #d3d9e3;
+
+    --c-text: #151a22;
+    --c-text-secondary: #566070;
+    --c-text-muted: #8b94a3;
+
+    --c-primary: #3b55f0;
+    --c-primary-hover: #2f45d8;
+    --c-on-primary: #ffffff;
+    --c-accent: #3050f5;
+    --c-accent-hover: #2441d6;
+    --c-accent-soft: rgba(48, 80, 245, 0.09);
+    --c-accent-text: #2641d8;
+    --grad-accent: linear-gradient(135deg, #5472ff 0%, #3350f2 100%);
+    --grad-accent-hover: linear-gradient(135deg, #6580ff 0%, #4560ff 100%);
+
+    --c-success: #138a5e;
+    --c-success-soft: rgba(19, 138, 94, 0.11);
+    --c-info: #2563d0;
+    --c-info-soft: rgba(37, 99, 208, 0.10);
+    --c-warning: #a86206;
+    --c-warning-soft: rgba(217, 140, 20, 0.14);
+    --c-danger: #d6362f;
+    --c-danger-hover: #b52a24;
+    --c-danger-soft: rgba(214, 54, 47, 0.09);
+    --c-purple: #6b46c1;
+    --c-purple-soft: rgba(107, 70, 193, 0.10);
+
+    --c-danger-strong: #8f1f1a;
+    --c-warning-border: rgba(168, 98, 6, 0.30);
+    --c-waiting-row: rgba(217, 140, 20, 0.06);
+    --c-waiting-row-hover: rgba(217, 140, 20, 0.10);
+
+    --c-shadow-sm: rgba(30, 45, 75, 0.06);
+    --c-shadow-md: rgba(30, 45, 75, 0.12);
+    --c-shadow-lg: rgba(25, 35, 60, 0.24);
+    --shadow-card: 0 1px 2px rgba(30, 45, 75, 0.04), 0 14px 32px -18px rgba(30, 45, 75, 0.18);
+    --shadow-float: 0 1px 2px rgba(30, 45, 75, 0.06), 0 6px 16px -8px rgba(30, 45, 75, 0.18);
+    --c-backdrop: rgba(25, 35, 60, 0.38);
+    --c-glow-a: rgba(130, 160, 255, 0.30);
+    --c-glow-b: rgba(190, 165, 255, 0.22);
+
+    --chart-low: #3fd7a2;
+    --chart-low-end: #1fb384;
+    --chart-info: #59b0ff;
+    --chart-info-end: #3585e6;
+    --chart-warning: #ffc459;
+    --chart-warning-end: #eb9d2c;
+    --chart-critical: #ff7c8a;
+    --chart-critical-end: #ea4a5f;
+
+    color-scheme: light;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+}
+
+body {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--c-text);
+    /* Two soft glows in opposite corners, then the tinted page color. */
+    background:
+        radial-gradient(60% 520px at 0 0, var(--c-glow-a), transparent) no-repeat fixed,
+        radial-gradient(60% 520px at 100% 100%, var(--c-glow-b), transparent) no-repeat fixed,
+        var(--c-page);
+    -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+    margin: 0;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+
+h1 { font-size: 18px; }
+h2 { font-size: 15px; }
+h3 { font-size: 14px; }
+
+a {
+    color: var(--c-accent);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+code, .nti-mono {
+    font-family: var(--font-mono);
+    font-size: 0.92em;
+}
+
+/* ---------- Application shell ---------- */
+
+.nti-app-main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.nti-app-body {
+    flex: 1;
+    min-height: 0;
+    padding: 12px 12px 12px 0;
+    overflow: hidden;
+}
+
+/* ---------- Sidebar ---------- */
+
+.nti-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 16px 12px;
+    min-height: 0;
+    overflow: hidden;
+    background: transparent;
+}
+
+.nti-sidebar-section {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 8px 6px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--c-text-muted);
+}
+
+.nti-sidebar-section button {
+    all: unset;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    color: var(--c-text-muted);
+    border-radius: 4px;
+    padding: 2px;
+}
+
+.nti-sidebar-section button:hover {
+    color: var(--c-accent);
+    background: var(--c-accent-soft);
+}
+
+.nti-sidebar-filter {
+    position: relative;
+    padding: 0 8px 6px 8px;
+}
+
+/* The sidebar block is declared before the general field rule: at equal */
+/* specificity the last one wins, so it must be strictly more specific, hence */
+/* the extra attribute selector. */
+.nti-sidebar .nti-sidebar-filter input[type="text"] {
+    padding: 6px 9px 6px 30px;
+    font-size: 12px;
+}
+
+.nti-sidebar-filter-glyph {
+    position: absolute;
+    left: 18px;
+    top: 8px;
+    display: flex;
+    color: var(--c-text-muted);
+    pointer-events: none;
+}
+
+.nti-sidebar-library {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 8px 10px 8px;
+}
+
+.nti-sidebar-library label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--c-text-muted);
+    white-space: nowrap;
+}
+
+.nti-sidebar .nti-sidebar-library input[type="text"] {
+    padding: 5px 8px;
+    font-size: 12px;
+}
+
+/* Only the queue list scrolls: the rest of the sidebar stays visible. */
+.nti-sidebar-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 0 -4px;
+    padding: 0 4px;
+}
+
+.nti-sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    padding: 7px 9px;
+    border: none;
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--c-text-secondary);
+    font: inherit;
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease;
+}
+
+.nti-sidebar-item:hover {
+    background: var(--c-surface-hover);
+    color: var(--c-text);
+}
+
+.nti-sidebar-item.active {
+    background: var(--c-surface-hover);
+    color: var(--c-text);
+    font-weight: 600;
+}
+
+.nti-sidebar-item .nti-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nti-sidebar-item .nti-count {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--c-text-muted);
+    font-family: var(--font-mono);
+}
+
+.nti-sidebar-item .nti-count.nti-alert {
+    padding: 1px 6px;
+    border-radius: 9px;
+    background: var(--c-danger-soft);
+    color: var(--c-danger);
+}
+
+.nti-sidebar-item.nti-danger {
+    color: var(--c-danger);
+}
+
+.nti-sidebar-item.nti-danger:hover {
+    background: var(--c-danger-soft);
+    color: var(--c-danger-hover);
+}
+
+.nti-sidebar-compose {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    width: 100%;
+    padding: 9px 12px;
+    border: none;
+    border-radius: var(--radius);
+    background: var(--c-primary);
+    color: var(--c-on-primary);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.12s ease;
+}
+
+.nti-sidebar-compose:hover {
+    background: var(--c-primary-hover);
+}
+
+.nti-sidebar-footer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: auto;
+    padding: 10px 8px 4px 8px;
+    border-top: 1px solid var(--c-border);
+}
+
+/* ---------- Profile page ---------- */
+
+.nti-profile-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.nti-profile-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: var(--c-accent);
+    color: var(--c-on-accent);
+    font-size: 15px;
+    font-weight: 600;
+}
+
+/* ---------- Page title bar ---------- */
+
+.nti-topbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: var(--topbar-height);
+    min-width: 0;
+    padding: 0 16px 0 4px;
+    flex-shrink: 0;
+}
+
+.nti-topbar .nti-title {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.nti-topbar .nti-title strong {
+    font-size: 15px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.nti-topbar .nti-title span {
+    font-size: 12px;
+    color: var(--c-text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.nti-topbar .nti-spacer {
+    flex: 1;
+}
+
+/* ---------- Buttons ---------- */
+
+.nti-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 7px 13px;
+    border: 1px solid var(--c-border-strong);
+    border-radius: var(--radius);
+    background: var(--c-surface);
+    color: var(--c-text);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.12s ease, border-color 0.12s ease, opacity 0.12s ease;
+}
+
+.nti-btn:hover:not(:disabled) {
+    background: var(--c-surface-hover);
+}
+
+.nti-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.nti-btn-primary {
+    border-color: var(--c-primary);
+    background: var(--c-primary);
+    color: var(--c-on-primary);
+}
+
+.nti-btn-primary:hover:not(:disabled) {
+    background: var(--c-primary-hover);
+    border-color: var(--c-primary-hover);
+}
+
+.nti-btn-danger {
+    border-color: var(--c-danger);
+    background: var(--c-danger);
+    color: var(--c-on-accent);
+}
+
+.nti-btn-danger:hover:not(:disabled) {
+    background: var(--c-danger-hover);
+}
+
+.nti-btn-ghost {
+    border-color: transparent;
+    background: transparent;
+    color: var(--c-text-secondary);
+}
+
+.nti-btn-ghost:hover:not(:disabled) {
+    background: var(--c-surface-hover);
+    color: var(--c-text);
+}
+
+.nti-btn-ghost-danger {
+    border-color: transparent;
+    background: transparent;
+    color: var(--c-danger);
+}
+
+.nti-btn-ghost-danger:hover:not(:disabled) {
+    background: var(--c-danger-soft);
+}
+
+.nti-btn-sm {
+    padding: 5px 10px;
+    font-size: 12px;
+}
+
+.nti-btn-icon {
+    padding: 7px;
+}
+
+/* ---------- Fields ---------- */
+
+.nti-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.nti-field label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--c-text-secondary);
+}
+
+.nti-field .nti-hint {
+    font-size: 11px;
+    color: var(--c-text-muted);
+}
+
+/* Blazor's InputText emits no type attribute: the selector targets inputs in */
+/* general, checkboxes and radio buttons excluded. */
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+    width: 100%;
+    padding: 8px 11px;
+    border: 1px solid var(--c-border-strong);
+    border-radius: var(--radius);
+    background: var(--c-surface);
+    color: var(--c-text);
+    font: inherit;
+    font-size: 13px;
+    transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):focus,
+input:not([type="checkbox"]):not([type="radio"]):focus-visible,
+select:focus,
+select:focus-visible,
+textarea:focus,
+textarea:focus-visible {
+    outline: none;
+    border: 1px solid var(--c-accent);
+    box-shadow: 0 0 0 3px var(--c-accent-soft);
+}
+
+/* Browser autofill repaints the field background and may add its own outline. */
+/* The inner shadow hides that background, the border is set again to match */
+/* the other fields. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:active {
+    border: 1px solid var(--c-border-strong);
+    -webkit-box-shadow: 0 0 0 1000px var(--c-surface) inset;
+    -webkit-text-fill-color: var(--c-text);
+    caret-color: var(--c-text);
+    transition: background-color 100000s ease-in-out 0s;
+}
+
+input:-webkit-autofill:focus {
+    border: 1px solid var(--c-accent);
+    -webkit-box-shadow: 0 0 0 1000px var(--c-surface) inset, 0 0 0 3px var(--c-accent-soft);
+}
+
+/* Standalone rule: a browser that does not know :autofill would invalidate the */
+/* whole selector list if it were added to the rules above. */
+input:autofill {
+    border: 1px solid var(--c-border-strong);
+    box-shadow: 0 0 0 1000px var(--c-surface) inset;
+}
+
+/* FocusOnNavigate puts the focus on the title at each navigation: without this */
+/* rule the browser draws a frame around the page title. */
+h1:focus,
+h1:focus-visible,
+h2:focus,
+h2:focus-visible {
+    outline: none;
+}
+
+/* No focus frame around buttons and links: the hover and selected states are enough. */
+button:focus,
+button:focus-visible,
+a:focus,
+a:focus-visible {
+    outline: none;
+}
+
+textarea {
+    resize: vertical;
+    min-height: 84px;
+    line-height: 1.5;
+}
+
+.nti-input-mono {
+    font-family: var(--font-mono);
+}
+
+/* ---------- Cards ---------- */
+
+.nti-card {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    border: 1px solid var(--c-border);
+    border-radius: var(--radius-lg);
+    background: var(--c-surface);
+    overflow: hidden;
+}
+
+.nti-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--c-border);
+    flex-shrink: 0;
+}
+
+.nti-card-header .nti-heading {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.nti-card-header .nti-heading strong {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.nti-card-header .nti-heading span {
+    font-size: 12px;
+    color: var(--c-text-secondary);
+}
+
+.nti-card-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.nti-card-body.nti-padded {
+    padding: 16px;
+}
+
+/* ---------- Inbox ---------- */
+
+.nti-inbox-layout {
+    display: grid;
+    grid-template-columns: var(--list-width) minmax(0, 1fr);
+    gap: 12px;
+    height: 100%;
+    min-height: 0;
+}
+
+.nti-message-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.nti-message-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 2px;
+    width: 100%;
+    border-left: 3px solid transparent;
+    border-bottom: 1px solid var(--c-border);
+    background: transparent;
+    transition: background 0.1s ease;
+}
+
+.nti-message-row:hover {
+    background: var(--c-surface-alt);
+}
+
+.nti-message-row.nti-selected {
+    background: var(--c-accent-soft);
+    border-left-color: var(--c-accent);
+}
+
+.nti-message-row.nti-checked {
+    background: var(--c-accent-soft);
+}
+
+.nti-message-row.nti-waiting .nti-msg-text {
+    font-weight: 600;
+    color: var(--c-text);
+}
+
+.nti-message-row-body {
+    flex: 1;
+    min-width: 0;
+    display: block;
+    padding: 11px 14px 11px 4px;
+    border: none;
+    background: transparent;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.nti-message-check {
+    width: 15px;
+    height: 15px;
+    margin: 14px 0 0 12px;
+    accent-color: var(--c-accent);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+/* ---------- Groups of repeated messages ---------- */
+
+.nti-group-row {
+    background: var(--c-surface-alt);
+}
+
+.nti-group-row .nti-msg-time {
+    font-family: var(--font-mono);
+}
+
+.nti-group-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    align-self: center;
+    flex-shrink: 0;
+    margin: 0 10px 0 4px;
+    padding: 5px 8px 5px 6px;
+    border: 1px solid var(--c-accent);
+    border-radius: 14px;
+    background: var(--c-accent-soft);
+    color: var(--c-accent-text);
+    font: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.12s ease, color 0.12s ease;
+}
+
+.nti-group-toggle:hover {
+    background: var(--c-accent);
+    color: var(--c-on-accent);
+}
+
+.nti-group-toggle span {
+    display: flex;
+    transition: transform 0.15s ease;
+}
+
+.nti-group-toggle span.nti-rotated {
+    transform: rotate(90deg);
+}
+
+/* The sub-list is clearly indented on a distinct background: indentation alone */
+/* does not make it obvious that this is the detail of a group. */
+.nti-group-children {
+    margin-left: 34px;
+    border-left: 2px solid var(--c-accent);
+    border-bottom: 1px solid var(--c-border);
+    background: var(--c-surface-alt);
+}
+
+.nti-group-children-head {
+    padding: 7px 14px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--c-accent-text);
+}
+
+.nti-group-children .nti-message-row {
+    border-left: none;
+    border-bottom: 1px solid var(--c-border);
+    background: transparent;
+}
+
+.nti-group-children .nti-message-row:last-child {
+    border-bottom: none;
+}
+
+.nti-group-children .nti-message-row:hover {
+    background: var(--c-surface);
+}
+
+/* Occurrence of a group: a single line, without repeating the group text. */
+.nti-message-row.nti-compact .nti-message-row-body {
+    padding: 7px 14px 7px 4px;
+}
+
+.nti-message-row.nti-compact .nti-message-check {
+    margin-top: 10px;
+}
+
+.nti-message-row.nti-compact .nti-msg-sender {
+    font-size: 11px;
+    color: var(--c-text-muted);
+}
+
+/* ---------- List sections ---------- */
+
+.nti-list-section {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--c-border);
+    background: var(--c-surface-alt);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--c-text-muted);
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+.nti-list-section .nti-count {
+    margin-left: auto;
+    font-family: var(--font-mono);
+    letter-spacing: 0;
+}
+
+.nti-list-section.nti-waiting {
+    background: var(--c-warning-soft);
+    color: var(--c-warning);
+    border-bottom-color: var(--c-warning-border);
+}
+
+.nti-message-row.nti-in-waiting-section {
+    background: var(--c-waiting-row);
+}
+
+.nti-message-row.nti-in-waiting-section:hover {
+    background: var(--c-waiting-row-hover);
+}
+
+.nti-message-row.nti-in-waiting-section.nti-selected,
+.nti-message-row.nti-in-waiting-section.nti-checked {
+    background: var(--c-accent-soft);
+}
+
+/* ---------- Hourly activity ---------- */
+
+.nti-activity-card {
+    flex-shrink: 0;
+    margin: 0 16px 12px 4px;
+    padding: 12px 14px 10px 14px;
+    border: 1px solid var(--c-border);
+    border-radius: var(--radius-lg);
+    background: var(--c-surface);
+}
+
+.nti-activity-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.nti-activity-scale {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 4px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--c-text-muted);
+}
+
+.nti-activity-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--c-text-secondary);
+}
+
+.nti-activity-legend span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.nti-activity-legend i {
+    width: 9px;
+    height: 9px;
+    border-radius: 2px;
+}
+
+/* ---------- Filter bar ---------- */
+
+.nti-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    padding: 0 16px 12px 4px;
+    flex-shrink: 0;
+}
+
+.nti-filter-bar select {
+    flex: 0 1 auto;
+    width: auto;
+    min-width: 0;
+    max-width: 100%;
+    padding: 6px 9px;
+    font-size: 12px;
+}
+
+.nti-filter-search {
+    position: relative;
+    flex: 1 1 220px;
+    min-width: 0;
+}
+
+/* The selector repeats .nti-filter-bar: otherwise the general field rule, more */
+/* specific because of its two :not(), would override the left padding and the */
+/* text would slide under the magnifier. */
+.nti-filter-bar .nti-filter-search input {
+    padding: 6px 11px 6px 32px;
+    font-size: 12px;
+}
+
+.nti-filter-search-glyph {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    color: var(--c-text-muted);
+    pointer-events: none;
+}
+
+/* ---------- Batch actions ---------- */
+
+.nti-bulk-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--c-border);
+    background: var(--c-accent-soft);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--c-accent-text);
+}
+
+.nti-message-row .nti-msg-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nti-message-row .nti-msg-id {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--c-text-secondary);
+}
+
+.nti-message-row .nti-msg-time {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--c-text-muted);
+    white-space: nowrap;
+}
+
+.nti-message-row .nti-msg-text {
+    margin-top: 4px;
+    font-size: 13px;
+    color: var(--c-text-secondary);
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.nti-message-row .nti-msg-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 6px;
+}
+
+/* ---------- Badges and chips ---------- */
+
+.nti-severity-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 26px;
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.nti-severity-badge.nti-sev-low {
+    background: var(--c-success-soft);
+    color: var(--c-success);
+}
+
+.nti-severity-badge.nti-sev-info {
+    background: var(--c-info-soft);
+    color: var(--c-info);
+}
+
+.nti-severity-badge.nti-sev-warning {
+    background: var(--c-warning-soft);
+    color: var(--c-warning);
+}
+
+.nti-severity-badge.nti-sev-critical {
+    background: var(--c-danger);
+    color: #fff;
+}
+
+.nti-severity-badge.nti-large {
+    min-width: 32px;
+    padding: 4px 8px;
+    font-size: 13px;
+}
+
+.nti-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 7px;
+    border-radius: var(--radius-sm);
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.nti-chip-neutral {
+    background: var(--c-surface-hover);
+    color: var(--c-text-secondary);
+}
+
+.nti-chip-accent {
+    background: var(--c-accent-soft);
+    color: var(--c-accent-text);
+}
+
+.nti-chip-purple {
+    background: var(--c-purple-soft);
+    color: var(--c-purple);
+}
+
+.nti-chip-success {
+    background: var(--c-success-soft);
+    color: var(--c-success);
+}
+
+.nti-chip-warning {
+    background: var(--c-warning-soft);
+    color: var(--c-warning);
+}
+
+.nti-chip-danger {
+    background: var(--c-danger-soft);
+    color: var(--c-danger);
+}
+
+.nti-chip-info {
+    background: var(--c-info-soft);
+    color: var(--c-info);
+}
+
+/* ---------- Message detail ---------- */
+
+.nti-detail-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 18px 12px 18px;
+}
+
+.nti-detail-head .nti-msg-id {
+    font-family: var(--font-mono);
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.nti-detail-text {
+    padding: 0 18px 14px 18px;
+    font-size: 14px;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.nti-detail-meta {
+    display: grid;
+    grid-template-columns: 132px minmax(0, 1fr);
+    gap: 6px 14px;
+    padding: 14px 18px;
+    border-top: 1px solid var(--c-border);
+    font-size: 12px;
+}
+
+.nti-detail-meta dt {
+    color: var(--c-text-muted);
+}
+
+.nti-detail-meta dd {
+    margin: 0;
+    color: var(--c-text);
+    word-break: break-word;
+}
+
+/* Substitution data mixes text and binary areas: the row height is capped so it */
+/* does not take over the reading pane. */
+.nti-replacement-data {
+    max-height: 54px;
+    overflow-y: auto;
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--c-text-secondary);
+}
+
+/* Clickable value in the metadata, for example the sender job. */
+.nti-link-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 1px 5px 1px 6px;
+    border: 1px solid var(--c-border);
+    border-radius: var(--radius-sm);
+    background: var(--c-surface-alt);
+    color: var(--c-accent-text);
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.nti-link-button:hover {
+    border-color: var(--c-accent);
+    background: var(--c-accent-soft);
+}
+
+.nti-detail-help {
+    margin: 0 18px 16px 18px;
+    padding: 12px 14px;
+    border: 1px solid var(--c-border);
+    border-radius: var(--radius);
+    background: var(--c-surface-alt);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--c-text-secondary);
+}
+
+.nti-detail-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 18px;
+    border-top: 1px solid var(--c-border);
+    background: var(--c-surface-alt);
+    flex-shrink: 0;
+}
+
+.nti-reply-box {
+    padding: 14px 18px;
+    border-top: 1px solid var(--c-border);
+    background: var(--c-accent-soft);
+    flex-shrink: 0;
+}
+
+.nti-reply-box .nti-reply-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--c-accent-text);
+}
+
+.nti-reply-box .nti-reply-line {
+    display: flex;
+    gap: 8px;
+}
+
+.nti-reply-box .nti-reply-line input {
+    flex: 1;
+}
+
+/* ---------- Empty and loading states ---------- */
+
+.nti-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 100%;
+    min-height: 200px;
+    padding: 32px;
+    text-align: center;
+    color: var(--c-text-muted);
+}
+
+.nti-empty-state .nti-glyph {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    margin-bottom: 4px;
+    border-radius: 50%;
+    background: var(--c-surface-hover);
+}
+
+.nti-empty-state strong {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--c-text-secondary);
+}
+
+.nti-empty-state p {
+    margin: 0;
+    max-width: 320px;
+    font-size: 13px;
+}
+
+.nti-loader {
+    display: inline-block;
+    width: 15px;
+    height: 15px;
+    border: 2px solid var(--c-border-strong);
+    border-top-color: var(--c-accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin 
+    to { transform: rotate(360deg); }
+
+
+.nti-loading-line {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    padding: 32px;
+    font-size: 13px;
+    color: var(--c-text-muted);
+}
+
+/* ---------- Modals ---------- */
+
+.nti-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: var(--c-backdrop);
+    overflow-y: auto;
+}
+
+.nti-modal {
+    width: 100%;
+    max-width: 520px;
+    border-radius: var(--radius-lg);
+    background: var(--c-surface);
+    box-shadow: 0 16px 40px var(--c-shadow-lg);
+    overflow: hidden;
+}
+
+.nti-modal.nti-wide {
+    max-width: 680px;
+}
+
+.nti-modal-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--c-border);
+}
+
+.nti-modal-header h2 {
+    flex: 1;
+}
+
+.nti-modal-header .nti-modal-glyph {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius);
+    background: var(--c-accent-soft);
+    color: var(--c-accent);
+}
+
+.nti-modal-header .nti-modal-glyph.nti-danger {
+    background: var(--c-danger-soft);
+    color: var(--c-danger);
+}
+
+.nti-modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 18px;
+    max-height: 62vh;
+    overflow-y: auto;
+}
+
+.nti-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 14px 18px;
+    border-top: 1px solid var(--c-border);
+    background: var(--c-surface-alt);
+}
+
+.nti-danger-notice {
+    display: flex;
+    gap: 10px;
+    padding: 12px 14px;
+    border: 1px solid var(--c-danger);
+    border-radius: var(--radius);
+    background: var(--c-danger-soft);
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--c-danger-strong);
+}
+
+.nti-danger-notice .nti-glyph {
+    flex-shrink: 0;
+    color: var(--c-danger);
+}
+
+/* ---------- Recipients of a send ---------- */
+
+.nti-recipients {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.nti-recipient {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 4px 3px 9px;
+    border: 1px solid var(--c-accent);
+    border-radius: 14px;
+    background: var(--c-accent-soft);
+    color: var(--c-accent-text);
+    font-size: 12px;
+}
+
+.nti-recipient-library {
+    font-size: 10px;
+    opacity: 0.75;
+}
+
+.nti-recipient button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+}
+
+.nti-recipient button:hover {
+    background: var(--c-accent);
+    color: var(--c-on-accent);
+}
+
+/* ---------- Notifications ---------- */
+
+.nti-toast-host {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    width: 340px;
+}
+
+.nti-toast {
+    display: flex;
+    gap: 10px;
+    padding: 12px 14px;
+    border: 1px solid var(--c-border);
+    border-left: 3px solid var(--c-text-muted);
+    border-radius: var(--radius);
+    background: var(--c-surface);
+    box-shadow: 0 8px 22px var(--c-shadow-md);
+    font-size: 13px;
+}
+
+.nti-toast.nti-success { border-left-color: var(--c-success); }
+.nti-toast.nti-error { border-left-color: var(--c-danger); }
+.nti-toast.nti-info { border-left-color: var(--c-info); }
+
+.nti-toast .nti-toast-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.nti-toast .nti-toast-body strong {
+    display: block;
+    font-weight: 600;
+}
+
+.nti-toast .nti-toast-body span {
+    color: var(--c-text-secondary);
+    word-break: break-word;
+}
+
+.nti-toast .nti-toast-close {
+    all: unset;
+    cursor: pointer;
+    color: var(--c-text-muted);
+    line-height: 1;
+}
+
+/* ---------- Queue attributes ---------- */
+
+.nti-attr-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 10px;
+}
+
+.nti-attr-tile {
+    padding: 12px 14px;
+    border-radius: var(--radius);
+    background: var(--c-surface-alt);
+}
+
+.nti-attr-tile .nti-attr-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--c-text-muted);
+}
+
+.nti-attr-tile .nti-attr-value {
+    margin-top: 3px;
+    font-size: 15px;
+    font-weight: 600;
+    word-break: break-word;
+}
+
+.nti-attr-tile .nti-attr-value.nti-mono {
+    font-family: var(--font-mono);
+    font-size: 13px;
+}
+
+/* ---------- Catalog ---------- */
+
+.nti-catalog-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    height: 100%;
+    min-height: 0;
+}
+
+.nti-catalog-search {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 10px;
+    padding: 14px 16px;
+    border: 1px solid var(--c-border);
+    border-radius: var(--radius-lg);
+    background: var(--c-surface);
+}
+
+.nti-catalog-search .nti-field {
+    min-width: 128px;
+}
+
+.nti-catalog-search .nti-field.nti-grow {
+    flex: 1 1 220px;
+    min-width: 0;
+}
+
+.nti-catalog-search select {
+    max-width: 100%;
+}
+
+.nti-var-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.nti-var-table th {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--c-border);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--c-text-muted);
+    text-align: left;
+}
+
+.nti-var-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--c-border);
+}
+
+.nti-var-table td.nti-mono {
+    font-family: var(--font-mono);
+}
+
+/* ---------- Utilities ---------- */
+
+.nti-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.nti-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nti-row.nti-wrap {
+    flex-wrap: wrap;
+}
+
+.nti-grow {
+    flex: 1;
+}
+
+.nti-muted {
+    color: var(--c-text-muted);
+}
+
+.nti-small {
+    font-size: 12px;
+}
+
+.nti-section-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--c-text-muted);
+}
+
+.nti-divider {
+    height: 1px;
+    background: var(--c-border);
+}
+
+/* ---------- Blazor errors ---------- */
+
+#blazor-error-ui {
+    display: none;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 3000;
+    padding: 12px 18px;
+    background: var(--c-warning-soft);
+    color: var(--c-warning);
+    border-top: 1px solid var(--c-warning-border);
+    font-size: 13px;
+}
+
+#blazor-error-ui .nti-dismiss {
+    position: absolute;
+    right: 14px;
+    top: 10px;
+    cursor: pointer;
+}
+
+/* ---------- Brand ---------- */
+
+.nti-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* The logo is an inline SVG drawn with currentColor, so it follows the theme. */
+.nti-brand-logo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: var(--radius);
+    color: var(--c-accent);
+    background: var(--c-accent-soft);
+}
+
+.nti-brand-logo svg {
+    width: 18px;
+    height: 18px;
+}
+
+.nti-brand-name {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--c-text);
+}
+
+.nti-brand-nti {
+    color: var(--c-accent);
+    font-family: var(--font-mono);
+    letter-spacing: -0.02em;
+}
+
+/* ---------- Header ---------- */
+
+/* Boxed layout: icon rail on the left, then a column with the top bar and one */
+/* rounded workspace frame. The application is centered and capped in width. */
+.nti-app {
+    position: relative;
+    display: grid;
+    grid-template-columns: var(--rail-width) minmax(0, 1fr);
+    height: 100vh;
+    max-width: var(--app-max-width);
+    margin: 0 auto;
+}
+
+/* A red strip across the top marks a production connection. */
+.nti-app.nti-is-production::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: var(--rail-width);
+    right: 20px;
+    height: 3px;
+    border-radius: 0 0 3px 3px;
+    background: var(--c-danger);
+    z-index: 5;
+}
+
+.nti-app-column {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    padding-right: 20px;
+}
+
+.nti-app-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: var(--header-height);
+    padding: 0 4px;
+    flex-shrink: 0;
+}
+
+.nti-brand-link,
+.nti-brand-link:hover {
+    text-decoration: none;
+}
+
+/* One rounded frame holds the queue panel and the page. */
+.nti-workspace {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+    margin-bottom: 20px;
+    border: 1px solid var(--c-border);
+    border-radius: var(--radius-lg);
+    background: var(--c-surface);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+}
+
+/* ---------- Icon rail ---------- */
+
+.nti-rail {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 14px 0 18px 0;
+    min-height: 0;
+}
+
+.nti-rail-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.nti-rail-link {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+    color: var(--c-text-secondary);
+    transition: background 0.12s ease, color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.nti-rail-link:hover {
+    background: var(--c-surface);
+    color: var(--c-text);
+    text-decoration: none;
+}
+
+/* Dark theme: a white veil and a white icon under the pointer. */
+:root:not([data-theme="light"]) .nti-rail-link:hover {
+    background: rgba(255, 255, 255, 0.10);
+    color: #ffffff;
+}
+
+/* The selected page is outlined in blue, its icon stays at full contrast. */
+.nti-rail-link.active {
+    background: var(--c-surface);
+    color: var(--c-text);
+    box-shadow: inset 0 0 0 2px var(--c-accent);
+}
+
+/* The inbox keeps its blue tile. Selected, it gains a ring set apart from the tile. */
+.nti-rail-link.nti-rail-home,
+.nti-rail-link.nti-rail-home:hover {
+    background: var(--grad-accent);
+    color: var(--c-on-primary);
+    box-shadow: var(--shadow-float);
+}
+
+.nti-rail-link.nti-rail-home.active {
+    box-shadow: 0 0 0 2px var(--c-page), 0 0 0 4px var(--c-accent);
+}
+
+.nti-rail-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: var(--c-danger);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+    box-shadow: 0 0 0 2px var(--c-page);
+}
+
+.nti-rail-foot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-top: auto;
+}
+
+.nti-rail .nti-segmented {
+    flex-direction: column;
+}
+
+.nti-rail .nti-btn-ghost {
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border-radius: 50%;
+    background: var(--c-surface);
+    box-shadow: var(--shadow-float);
+}
+
+.nti-who {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0 4px;
+    font-size: 12px;
+    color: var(--c-text-secondary);
+}
+
+.nti-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--c-success);
+    flex-shrink: 0;
+}
+
+.nti-status-dot.nti-production {
+    background: var(--c-danger);
+    box-shadow: 0 0 0 3px var(--c-danger-soft);
+}
+
+/* ---------- Segmented control ---------- */
+
+.nti-segmented {
+    display: inline-flex;
+    padding: 2px;
+    border: 1px solid var(--c-border);
+    border-radius: var(--radius);
+    background: var(--c-surface);
+}
+
+.nti-segmented button {
+    padding: 2px 8px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--c-text-muted);
+    font: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease;
+}
+
+.nti-segmented button:hover {
+    color: var(--c-text);
+}
+
+.nti-segmented button[aria-pressed="true"] {
+    background: var(--c-accent-soft);
+    color: var(--c-accent-text);
+}
+
+/* ---------- Page title ---------- */
+
+.nti-page-head {
+    display: flex;
+    align-items: center;
+    height: var(--topbar-height);
+    padding: 0 16px 0 4px;
+    flex-shrink: 0;
+}
+
+.nti-page-head .nti-title {
+    display: flex;
+    flex-direction: column;
+}
+
+.nti-page-head h1 {
+    font-size: 15px;
+}
+
+.nti-page-head .nti-title span {
+    font-size: 12px;
+    color: var(--c-text-secondary);
+}
+
+/* ---------- Warnings ---------- */
+
+.nti-danger-banner {
+    display: flex;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--c-warning-border);
+    border-radius: var(--radius);
+    background: var(--c-warning-soft);
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--c-warning);
+}
+
+.nti-danger-banner.nti-destructive {
+    border-color: var(--c-danger);
+    background: var(--c-danger-soft);
+    color: var(--c-danger-strong);
+}
+
+.nti-danger-banner .nti-glyph {
+    flex-shrink: 0;
+    padding-top: 1px;
+}
+
+.nti-danger-banner ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.nti-danger-banner li + li {
+    margin-top: 3px;
+}
+
+.nti-danger-banner li.nti-strong {
+    font-weight: 600;
+    color: var(--c-danger);
+}
+
+.nti-danger-notice.nti-warning {
+    border-color: var(--c-warning-border);
+    background: var(--c-warning-soft);
+    color: var(--c-warning);
+}
+
+.nti-danger-notice.nti-warning .nti-glyph {
+    color: var(--c-warning);
+}
+
+/* ---------- Sign-on ---------- */
+
+.nti-login-shell {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 56px 24px 24px 24px;
+}
+
+.nti-login-top {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nti-login-card {
+    width: 100%;
+    max-width: 380px;
+    padding: 26px;
+    border: 1px solid var(--c-border);
+    border-radius: var(--radius-lg);
+    background: var(--c-surface);
+    box-shadow: 0 12px 32px var(--c-shadow-md);
+}
+
+.nti-login-brand {
+    margin-bottom: 4px;
+}
+
+.nti-login-brand .nti-brand-name {
+    font-size: 18px;
+}
+
+.nti-login-brand .nti-brand-logo {
+    width: 32px;
+    height: 32px;
+}
+
+.nti-login-greeting {
+    margin: 10px 0 16px 0;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--c-text);
+}
+
+/* Failure shown above the form. Long system messages wrap instead of overflowing. */
+.nti-login-error {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 12px 0 16px 0;
+    padding: 10px 12px;
+    border: 1px solid var(--c-danger);
+    border-radius: var(--radius);
+    background: var(--c-danger-soft);
+    color: var(--c-danger-strong);
+    font-size: 12.5px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+.nti-login-error svg {
+    flex: none;
+    margin-top: 2px;
+}
+
+.nti-login-error div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.nti-chips {
+    display: inline-flex;
+    gap: 6px;
+    margin-left: auto;
+}
+
+/* Frame shown in place of a page that raised an unexpected error. */
+.nti-error-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin: 48px auto;
+    max-width: 420px;
+    padding: 28px;
+    border: 1px solid var(--c-border-strong);
+    border-radius: var(--radius-lg);
+    background: var(--c-surface);
+    text-align: center;
+}
+
+.nti-error-panel h2 {
+    margin: 4px 0 0 0;
+    font-size: 16px;
+}
+
+.nti-error-panel p {
+    margin: 0 0 8px 0;
+    color: var(--c-text-secondary);
+    font-size: 13px;
+}
+
+.nti-error-panel-glyph {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--c-danger-soft);
+    color: var(--c-danger);
+}
+
+.nti-login-card .nti-subtitle {
+    margin: 0 0 20px 0;
+    font-size: 13px;
+    color: var(--c-text-secondary);
+}
+
+.nti-error-title {
+    margin: 12px 0 4px 0;
+    font-size: 16px;
+}
+
+.nti-login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.nti-btn-block {
+    width: 100%;
+    padding: 8px 12px;
+}
+
+.nti-check-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--c-text-secondary);
+    cursor: pointer;
+}
+
+.nti-check-row input {
+    width: auto;
+    margin: 0;
+    accent-color: var(--c-accent);
+}
+
+.nti-login-form .nti-hint {
+    margin-top: -6px;
+    font-size: 11px;
+    color: var(--c-text-muted);
+}
+
+.nti-profile-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+}
+
+.nti-profile-pick,
+.nti-saved-profile {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--c-border-strong);
+    border-radius: var(--radius);
+    background: var(--c-surface-alt);
+    color: var(--c-text);
+    font: inherit;
+    text-align: left;
+}
+
+.nti-profile-pick {
+    cursor: pointer;
+    transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.nti-profile-pick:hover {
+    background: var(--c-surface-hover);
+    border-color: var(--c-accent);
+}
+
+.nti-saved-profile {
+    margin-bottom: 14px;
+    justify-content: space-between;
+}
+
+.nti-saved-profile-main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+/* Production profiles are marked in red everywhere they are listed. */
+.nti-profile-pick.nti-production,
+.nti-saved-profile.nti-production {
+    border-color: var(--c-danger);
+    background: var(--c-danger-soft);
+}
+
+.nti-login-links {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 14px;
+}
+
+.nti-login-links .nti-link-button,
+.nti-info-link {
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--c-text-secondary);
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.nti-login-links .nti-link-button:hover,
+.nti-info-link:hover {
+    background: transparent;
+    color: var(--c-accent-text);
+    text-decoration: underline;
+}
+
+.nti-info-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 18px;
+}
+
+.nti-info-list {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--c-text-secondary);
+}
+
+.nti-info-list li + li {
+    margin-top: 8px;
+}
+
+.nti-info-list strong {
+    color: var(--c-text);
+}
+
+/* ---------- Reconnection dialog (rendered outside the circuit) ---------- */
+
+#components-reconnect-modal {
+    background-color: var(--c-surface);
+    color: var(--c-text);
+}
+
+/* ---------- Help tip ---------- */
+
+.nti-help-tip {
+    position: relative;
+    display: inline-flex;
+    vertical-align: middle;
+    margin-left: 4px;
+}
+
+.nti-help-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 15px;
+    height: 15px;
+    padding: 0;
+    border: 1px solid var(--c-border-strong);
+    border-radius: 50%;
+    background: transparent;
+    color: var(--c-text-muted);
+    font: inherit;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.nti-help-btn:hover,
+.nti-help-btn[aria-expanded="true"] {
+    border-color: var(--c-accent);
+    color: var(--c-accent-text);
+}
+
+.nti-help-pop {
+    position: absolute;
+    left: 0;
+    top: 20px;
+    z-index: 50;
+    width: 240px;
+    padding: 8px 10px;
+    border: 1px solid var(--c-border-strong);
+    border-radius: var(--radius);
+    background: var(--c-surface);
+    box-shadow: 0 8px 22px var(--c-shadow-md);
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.45;
+    color: var(--c-text-secondary);
+    text-transform: none;
+    letter-spacing: 0;
+    white-space: normal;
+}
+
+/* Red buttons keep white text: the accent text color is dark on the light green. */
+.nti-btn-danger,
+.nti-btn-danger:hover:not(:disabled) {
+    color: #fff;
+}
+
+/* ---------- Redesign layer ---------- */
+/* Soft surfaces, pill controls and the blue accent. Declared last so it refines the */
+/* component rules above without repeating them. */
+
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--c-border-strong) transparent;
+}
+
+/* Top bar controls float on the page as small pills. */
+.nti-who {
+    padding: 6px 12px;
+    border: none;
+    border-radius: var(--radius-pill);
+    background: var(--c-surface);
+    box-shadow: var(--shadow-float);
+}
+
+.nti-app-header .nti-btn-ghost {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border-radius: 50%;
+    background: var(--c-surface);
+    box-shadow: var(--shadow-float);
+}
+
+.nti-status-dot:not(.nti-production) {
+    box-shadow: 0 0 0 3px var(--c-accent-soft);
+}
+
+.nti-loader {
+    border-top-color: var(--c-accent);
+}
+
+/* Segmented control, used for the language. */
+.nti-segmented {
+    padding: 3px;
+    border: none;
+    border-radius: var(--radius-pill);
+    background: var(--c-surface);
+    box-shadow: var(--shadow-float);
+}
+
+.nti-segmented button {
+    padding: 4px 9px;
+    border-radius: var(--radius-pill);
+}
+
+/* Buttons. */
+.nti-btn {
+    padding: 7px 15px;
+    border-color: var(--c-border-strong);
+    border-radius: var(--radius-pill);
+}
+
+.nti-btn-icon {
+    padding: 8px;
+}
+
+.nti-btn-primary,
+.nti-sidebar-compose {
+    border-color: transparent;
+    background: var(--grad-accent);
+    color: var(--c-on-primary);
+    box-shadow: var(--shadow-float);
+}
+
+.nti-btn-primary:hover:not(:disabled),
+.nti-sidebar-compose:hover {
+    border-color: transparent;
+    background: var(--grad-accent-hover);
+}
+
+.nti-btn-ghost {
+    border-color: transparent;
+}
+
+/* Fields: filled, softly rounded. */
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+    border-color: var(--c-border);
+    border-radius: var(--radius);
+    background: var(--c-surface-alt);
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:active,
+input:autofill {
+    border-color: var(--c-border);
+    -webkit-box-shadow: 0 0 0 1000px var(--c-surface-alt) inset;
+    box-shadow: 0 0 0 1000px var(--c-surface-alt) inset;
+}
+
+.nti-filter-bar .nti-filter-search input,
+.nti-sidebar .nti-sidebar-filter input[type="text"] {
+    border-radius: var(--radius-pill);
+}
+
+.nti-filter-bar select {
+    border-radius: var(--radius-pill);
+    padding-right: 26px;
+}
+
+/* Chips and badges are pills. */
+.nti-chip {
+    padding: 2px 9px;
+    border-radius: var(--radius-pill);
+}
+
+.nti-severity-badge {
+    border-radius: 8px;
+}
+
+/* Queue panel, on the left of the frame. */
+.nti-sidebar {
+    width: var(--sidebar-width);
+    flex-shrink: 0;
+    padding: 18px 12px 14px 14px;
+    border-right: 1px solid var(--c-border);
+}
+
+.nti-sidebar-item {
+    padding: 8px 10px;
+    border-radius: var(--radius);
+}
+
+.nti-sidebar-item.active {
+    background: var(--c-surface-hover);
+}
+
+.nti-sidebar-item.active svg {
+    color: var(--c-accent);
+}
+
+.nti-sidebar-compose {
+    padding: 10px 14px;
+    margin-bottom: 6px;
+    border-radius: var(--radius-pill);
+}
+
+/* Pages inside the frame. */
+.nti-app-main {
+    flex: 1;
+}
+
+.nti-workspace .nti-topbar,
+.nti-workspace .nti-page-head {
+    height: 68px;
+    padding: 0 20px;
+}
+
+.nti-workspace .nti-filter-bar {
+    padding: 0 20px 14px 20px;
+}
+
+.nti-workspace .nti-activity-card {
+    margin: 0 20px 14px 20px;
+}
+
+.nti-app-body {
+    padding: 0 20px 20px 20px;
+}
+
+/* Cards inside the frame are outlined, not floating: the frame carries the shadow. */
+.nti-workspace .nti-card,
+.nti-workspace .nti-activity-card,
+.nti-workspace .nti-catalog-search {
+    border-radius: 16px;
+    box-shadow: none;
+}
+
+.nti-activity-card,
+.nti-catalog-search {
+    background: var(--c-surface);
+}
+
+/* Message detail reads like a conversation: the text sits in a soft bubble and the */
+/* reply in a composer card. */
+.nti-detail-text {
+    margin: 0 18px 14px 18px;
+    padding: 14px 16px;
+    border-radius: 16px 16px 16px 6px;
+    background: var(--c-surface-alt);
+}
+
+.nti-reply-box {
+    margin: 0 18px 18px 18px;
+    padding: 12px 14px;
+    border: 1px solid var(--c-border-strong);
+    border-radius: 16px;
+    background: var(--c-surface);
+    box-shadow: var(--shadow-float);
+}
+
+.nti-reply-box .nti-reply-line input {
+    border-radius: var(--radius-pill);
+}
+
+.nti-detail-help,
+.nti-attr-tile {
+    border-radius: 14px;
+}
+
+/* Modals and sign-on card float higher than the rest. */
+.nti-modal {
+    box-shadow: 0 24px 60px -20px var(--c-shadow-lg);
+}
+
+.nti-login-card {
+    background: var(--c-surface);
+    box-shadow: var(--shadow-card);
+}
+
+.nti-toast {
+    border-radius: 14px;
+    box-shadow: var(--shadow-float);
+}
+
+.nti-error-panel {
+    box-shadow: var(--shadow-card);
+}
+
+/* ---------- Brand and sign-on polish ---------- */
+
+/* Wordmark in the interface font: "NTi" in strong weight, "Inbox" lighter. */
+.nti-brand-name {
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    color: var(--c-text-secondary);
+}
+
+.nti-brand-nti {
+    font-family: inherit;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--c-text);
+}
+
+/* Logo tile: gradient square with a white glyph. */
+.nti-brand-logo {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: var(--grad-accent);
+    color: var(--c-on-primary);
+    box-shadow: var(--shadow-float);
+}
+
+.nti-login-card {
+    max-width: 408px;
+    padding: 34px 32px 26px 32px;
+}
+
+.nti-login-brand {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 22px;
+}
+
+.nti-login-brand .nti-brand {
+    flex-direction: column;
+    gap: 12px;
+}
+
+.nti-login-brand .nti-brand-logo {
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
+}
+
+.nti-login-brand .nti-brand-logo svg {
+    width: 26px;
+    height: 26px;
+}
+
+.nti-login-brand .nti-brand-name {
+    font-size: 22px;
+}
+
+.nti-login-greeting {
+    margin: 0 0 22px 0;
+    font-size: 15px;
+    font-weight: 500;
+    text-align: center;
+    color: var(--c-text-secondary);
+}
+
+.nti-login-form {
+    gap: 16px;
+}
+
+.nti-login-form .nti-field label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--c-text-secondary);
+}
+
+.nti-login-card .nti-login-form input:not([type="checkbox"]):not([type="radio"]) {
+    height: 44px;
+    padding: 0 14px;
+    border-radius: 14px;
+}
+
+.nti-login-card .nti-btn-block {
+    height: 46px;
+    margin-top: 4px;
+    border-radius: var(--radius-pill);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.nti-login-avatar {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--c-accent-soft);
+    color: var(--c-accent-text);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.nti-profile-pick,
+.nti-saved-profile {
+    padding: 10px 14px;
+    border-color: var(--c-border);
+    border-radius: 16px;
+    background: var(--c-surface-alt);
+}
+
+.nti-saved-profile {
+    margin-bottom: 18px;
+    justify-content: flex-start;
+}
+
+.nti-saved-profile-main {
+    flex: 1;
+    gap: 1px;
+}
+
+.nti-profile-list {
+    gap: 8px;
+    margin-bottom: 18px;
+}
+
+.nti-profile-pick > .nti-saved-profile-main {
+    align-items: flex-start;
+}
+
+.nti-login-links {
+    margin-top: 16px;
+}
+
+.nti-info-link {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--c-border);
+}
+
+/* ---------- Demonstration notice and light theme fields ---------- */
+
+/* Warning box reusing .nti-danger-banner: a title, then the text. */
+.nti-demo-notice {
+    margin-bottom: 18px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    font-size: 12px;
+}
+
+.nti-demo-notice strong {
+    display: block;
+    font-size: 13px;
+}
+
+.nti-demo-notice p {
+    margin: 3px 0 0 0;
+    line-height: 1.5;
+}
+
+/* In the light theme the fields are white with a clearly visible border. */
+:root[data-theme="light"] input:not([type="checkbox"]):not([type="radio"]),
+:root[data-theme="light"] select,
+:root[data-theme="light"] textarea {
+    border-color: var(--c-border-strong);
+    background: #ffffff;
+}
+
+:root[data-theme="light"] input:-webkit-autofill,
+:root[data-theme="light"] input:-webkit-autofill:hover,
+:root[data-theme="light"] input:-webkit-autofill:active,
+:root[data-theme="light"] input:autofill {
+    border-color: var(--c-border-strong);
+    -webkit-box-shadow: 0 0 0 1000px #ffffff inset;
+    box-shadow: 0 0 0 1000px #ffffff inset;
+}
+
+/* ---------- Activity chart ---------- */
+
+.nti-activity-bars {
+    display: flex;
+    gap: 6px;
+    height: 120px;
+}
+
+.nti-activity-col {
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+}
+
+.nti-activity-track {
+    display: flex;
+    align-items: flex-end;
+    height: 100%;
+    border-radius: 8px;
+    background: var(--c-surface-alt);
+    transition: background 0.12s ease;
+}
+
+.nti-activity-col:hover .nti-activity-track {
+    background: var(--c-surface-hover);
+}
+
+.nti-activity-col.nti-selected .nti-activity-track {
+    background: var(--c-accent-soft);
+}
+
+/* The stack grows from the bottom; a single message still shows as a small cap. */
+.nti-activity-stack {
+    display: flex;
+    flex-direction: column-reverse;
+    width: 100%;
+    min-height: 6px;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: opacity 0.12s ease;
+}
+
+.nti-activity-card:has(.nti-activity-col.nti-selected) .nti-activity-col:not(.nti-selected) .nti-activity-stack {
+    opacity: 0.35;
+}
+
+.nti-seg {
+    min-height: 3px;
+}
+
+.nti-seg-low { background: linear-gradient(180deg, var(--chart-low), var(--chart-low-end)); }
+.nti-seg-info { background: linear-gradient(180deg, var(--chart-info), var(--chart-info-end)); }
+.nti-seg-warning { background: linear-gradient(180deg, var(--chart-warning), var(--chart-warning-end)); }
+.nti-seg-critical { background: linear-gradient(180deg, var(--chart-critical), var(--chart-critical-end)); }
+
+.nti-activity-legend i {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+i.nti-seg-low { background: var(--chart-low); }
+i.nti-seg-info { background: var(--chart-info); }
+i.nti-seg-warning { background: var(--chart-warning); }
+i.nti-seg-critical { background: var(--chart-critical); }
+
+.nti-activity-scale {
+    margin-top: 8px;
+}

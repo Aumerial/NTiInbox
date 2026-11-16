@@ -1,0 +1,17 @@
+@* Help text hidden behind a small "?" button: nothing is visible until it is clicked. *@
+
+<span class="nti-help-tip">
+    <button type="button" class="nti-help-btn" aria-label="@L("common.help")" aria-expanded="@(_open ? "true" : "false")"
+            @onclick="() => _open = !_open" @onclick:stopPropagation="true">?</button>
+    @if (_open)
+    {
+        <span class="nti-help-pop" role="note">@Text</span>
+    }
+</span>
+
+@code {
+    /// <summary>Help text shown on click.</summary>
+    [Parameter, EditorRequired] public string Text { get; set; } = string.Empty;
+
+    private bool _open;
+}

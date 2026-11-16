@@ -1,0 +1,229 @@
+@page "/profile"
+@inject MessageQueueService Service
+@inject IbmiSession Connection
+@inject InboxState Inbox
+@inject ToastService Toasts
+@inject NavigationManager Navigation
+
+<PageTitle>@L("profile.title") - NTi Inbox</PageTitle>
+
+@* Connected profile, read through QSYRUSRI, and state of the connection. *@
+
+<div class="nti-page-head">
+    <div class="nti-title">
+        <h1>@L("profile.title")</h1>
+        <span>@L("profile.subtitle")</span>
+    </div>
+</div>
+
+<div class="nti-app-body">
+    <div class="nti-card" style="flex:1">
+        <div class="nti-card-body nti-padded">
+            <div class="nti-stack">
+                <div class="nti-profile-head">
+                    <span class="nti-profile-avatar">@Connection.Initials</span>
+                    <div class="nti-grow" style="min-width:0">
+                        <div class="nti-row" style="gap:8px">
+                            <strong class="nti-mono" style="font-size:16px">@Connection.User</strong>
+                            @if (_user is not null)
+                            {
+                                <span class="nti-chip @(_user.IsEnabled ? "nti-chip-success" : "nti-chip-danger")">@_user.Status</span>
+                                @if (!string.IsNullOrWhiteSpace(_user.UserClass))
+                                {
+                                    <span class="nti-chip nti-chip-neutral">@_user.UserClass</span>
+                                }
+                            }
+                        </div>
+                        <div class="nti-small nti-muted">
+                            @if (_user is not null && !string.IsNullOrWhiteSpace(_user.TextDescription))
+                            {
+                                @_user.TextDescription
+                            }
+                            else
+                            {
+                                <text>@L("profile.connectedOn", Connection.Host)</text>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                @if (_loading)
+                {
+                    <div class="nti-loading-line">
+                        <span class="nti-loader"></span>
+                        @L("profile.loading")
+                    </div>
+                }
+
+                <div>
+                    <div class="nti-section-label">@L("profile.section.connection")</div>
+                    <div class="nti-attr-grid" style="margin-top:6px">
+                        <div class="nti-attr-tile">
+                            <div class="nti-attr-label">@L("profile.system")</div>
+                            <div class="nti-attr-value nti-mono">@Connection.Host</div>
+                        </div>
+                        <div class="nti-attr-tile">
+                            <div class="nti-attr-label">@L("profile.encryption")</div>
+                            <div class="nti-attr-value">@(Connection.UseSsl ? L("profile.encryption.on") : L("profile.encryption.off"))</div>
+                        </div>
+                        <div class="nti-attr-tile">
+                            <div class="nti-attr-label">@L("profile.environment")</div>
+                            <div class="nti-attr-value">@(Connection.IsProduction ? L("profile.environment.production") : L("profile.environment.other"))</div>
+                        </div>
+                        <div class="nti-attr-tile">
+                            <div class="nti-attr-label">@L("profile.library")</div>
+                            <div class="nti-attr-value nti-mono">@Inbox.DiscoveryLibrary</div>
+                        </div>
+                        <div class="nti-attr-tile">
+                            <div class="nti-attr-label">@L("profile.queuesFound")</div>
+                            <div class="nti-attr-value">@Inbox.Queues.Count</div>
+                        </div>
+                    </div>
+                </div>
+
+                @if (_user is not null)
+                {
+                    <div>
+                        <div class="nti-section-label">@L("profile.section.queue")</div>
+                        <div class="nti-attr-grid" style="margin-top:6px">
+                            <div class="nti-attr-tile">
+                                <div class="nti-attr-label">@L("profile.queue")</div>
+                                <div class="nti-attr-value nti-mono">@_user.MessageQueueLibrary/@_user.MessageQueueName</div>
+                            </div>
+                            <div class="nti-attr-tile">
+                                <div class="nti-attr-label">@L("profile.delivery")</div>
+                                <div class="nti-attr-value nti-mono">@_user.MessageQueueDeliveryMethod</div>
+                            </div>
+                            <div class="nti-attr-tile">
+                                <div class="nti-attr-label">@L("profile.severity")</div>
+                                <div class="nti-attr-value">@L("profile.severityAbove", _user.MessageQueueSeverity)</div>
+                            </div>
+                        </div>
+
+                        @if (IsQueueAllocating(_user.MessageQueueDeliveryMethod))
+                        {
+                            <p class="nti-small nti-muted" style="margin:8px 0 0 0">@L("profile.allocating", _user.MessageQueueDeliveryMethod ?? string.Empty)</p>
+                        }
+
+                        <button class="nti-btn nti-btn-sm" type="button" style="margin-top:10px" @onclick="OpenOwnQueue">
+                            <Icon Name="inbox" Size="14" />
+                            @L("profile.openQueue")
+                        </button>
+                    </div>
+
+                    <div>
+                        <div class="nti-section-label">@L("profile.section.profile")</div>
+                        <div class="nti-attr-grid" style="margin-top:6px">
+                            <div class="nti-attr-tile">
+                                <div class="nti-attr-label">@L("profile.lastSignOn")</div>
+                                <div class="nti-attr-value" style="font-size:13px">
+                                    @(_user.PreviousSignOn is null ? L("profile.never") : Localizer.FormatDate(_user.PreviousSignOn))
+                                </div>
+                            </div>
+                            <div class="nti-attr-tile">
+                                <div class="nti-attr-label">@L("profile.invalidAttempts")</div>
+                                <div class="nti-attr-value">@_user.InvalidSignOnAttempts</div>
+                            </div>
+                            <div class="nti-attr-tile">
+                                <div class="nti-attr-label">@L("profile.group")</div>
+                                <div class="nti-attr-value nti-mono">@_user.GroupProfile</div>
+                            </div>
+                            <div class="nti-attr-tile">
+                                <div class="nti-attr-label">@L("profile.currentLibrary")</div>
+                                <div class="nti-attr-value nti-mono">@_user.CurrentLibrary</div>
+                            </div>
+                            <div class="nti-attr-tile">
+                                <div class="nti-attr-label">@L("profile.limitCapabilities")</div>
+                                <div class="nti-attr-value nti-mono">@_user.LimitCapabilities</div>
+                            </div>
+                            <div class="nti-attr-tile">
+                                <div class="nti-attr-label">@L("profile.storage")</div>
+                                <div class="nti-attr-value">@FormatStorage(_user.StorageUsed)</div>
+                            </div>
+                            <div class="nti-attr-tile">
+                                <div class="nti-attr-label">@L("profile.jobDescription")</div>
+                                <div class="nti-attr-value nti-mono">@_user.JobDescriptionLibrary/@_user.JobDescriptionName</div>
+                            </div>
+                            <div class="nti-attr-tile">
+                                <div class="nti-attr-label">@L("profile.outputQueue")</div>
+                                <div class="nti-attr-value nti-mono">@_user.OutputQueueLibrary/@_user.OutputQueueName</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="nti-section-label">@L("profile.section.authorities")</div>
+                        <div class="nti-row nti-wrap" style="margin-top:6px">
+                            @if (_user.SpecialAuthorities.Count == 0)
+                            {
+                                <span class="nti-small nti-muted">@L("profile.noAuthority")</span>
+                            }
+                            else
+                            {
+                                @foreach (var authority in _user.SpecialAuthorities)
+                                {
+                                    <span class="nti-chip @(IsSensitive(authority) ? "nti-chip-warning" : "nti-chip-neutral")">@authority</span>
+                                }
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private UserInformation? _user;
+    private bool _loading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Connection.IsConnected)
+        {
+            return;
+        }
+
+        _loading = true;
+
+        try
+        {
+            _user = await Service.GetCurrentUserAsync();
+        }
+        catch (Exception ex)
+        {
+            _user = null;
+            Toasts.Error(L("profile.toast.failed"), ex);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void OpenOwnQueue()
+    {
+        if (_user is null || string.IsNullOrWhiteSpace(_user.MessageQueueName))
+        {
+            return;
+        }
+
+        var library = string.IsNullOrWhiteSpace(_user.MessageQueueLibrary) ? "QUSRSYS" : _user.MessageQueueLibrary!;
+        Inbox.AddQueue(new MessageQueueRef(_user.MessageQueueName!, library));
+        Navigation.NavigateTo("/");
+    }
+
+    private static bool IsQueueAllocating(string? deliveryMethod)
+        => (deliveryMethod ?? string.Empty).Trim().ToUpperInvariant() is "*BREAK" or "*NOTIFY";
+
+    private static bool IsSensitive(string authority)
+        => authority is "*ALLOBJ" or "*SECADM" or "*SERVICE" or "*AUDIT";
+
+    // Storage in kilobytes, shown in the culture of the current language.
+    private string FormatStorage(int kilobytes) => kilobytes switch
+    {
+        >= 1024 * 1024 => $"{(kilobytes / (1024d * 1024d)).ToString("0.0", Localizer.Culture)} {L("size.gb")}",
+        >= 1024 => $"{(kilobytes / 1024d).ToString("0.0", Localizer.Culture)} {L("size.mb")}",
+        _ => $"{kilobytes} {L("size.kb")}"
+    };
+}

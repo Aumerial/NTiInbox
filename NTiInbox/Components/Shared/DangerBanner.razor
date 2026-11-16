@@ -1,0 +1,34 @@
+@inject IbmiSession Connection
+
+@* Warning shown in every confirmation. It combines three signals: the nature of *@
+@* the action, the production marking and the elevated authorities of the profile. *@
+
+<div class="nti-danger-banner @(Destructive ? "nti-destructive" : "")" role="alert">
+    <span class="nti-glyph"><Icon Name="alert-triangle" Size="16" /></span>
+    <ul>
+        <li>@(Destructive ? L("danger.destructive") : L("danger.writes"))</li>
+        @if (Connection.IsProduction)
+        {
+            <li class="nti-strong">@L("danger.production", Connection.Host)</li>
+        }
+        @if (Connection.ElevatedAuthorities.Count > 0)
+        {
+            <li class="nti-strong">@L("danger.elevated", string.Join(", ", Connection.ElevatedAuthorities))</li>
+        }
+    </ul>
+</div>
+
+@code {
+    /// <summary>True when the action cannot be undone.</summary>
+    [Parameter] public bool Destructive { get; set; }
+
+    protected override void OnInitialized() => Connection.Changed += OnChanged;
+
+    private void OnChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public override void Dispose()
+    {
+        Connection.Changed -= OnChanged;
+        base.Dispose();
+    }
+}

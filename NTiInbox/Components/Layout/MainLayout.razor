@@ -1,0 +1,80 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject IbmiSession Connection
+
+@* Main layout: icon rail, top bar, then one frame with the queue panel and the page. *@
+@* The dialogs are hosted here to stay reachable from every page. *@
+
+@if (Connection.IsConnected)
+{
+    <div class="nti-app @(Connection.IsProduction ? "nti-is-production" : "")">
+        <AppRail />
+        <div class="nti-app-column">
+            <AppHeader />
+            @* One rounded frame holds the queue panel (inbox only) and the page. *@
+            <div class="nti-workspace">
+                @if (OnInbox)
+                {
+                    <QueueSidebar />
+                }
+                <div class="nti-app-main">
+                    @* An unexpected failure of a page stays inside this frame, the rest remains usable. *@
+                    <ErrorBoundary @ref="_boundary">
+                        <ChildContent>@Body</ChildContent>
+                        <ErrorContent>
+                            <ErrorPanel OnRetry="Retry" />
+                        </ErrorContent>
+                    </ErrorBoundary>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <ComposeDialog />
+    <BreakMessageDialog />
+    <QueueAttributesDialog />
+    <JobInfoDialog />
+}
+@* Not connected: nothing is rendered, the user is sent to the sign-on form. *@
+
+<ToastHost />
+
+@code {
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
+
+    private ErrorBoundary? _boundary;
+
+    // The queue panel only makes sense on the inbox page.
+    private bool OnInbox => new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/').Length == 0;
+
+    protected override void OnInitialized()
+    {
+        Connection.Changed += OnConnectionChanged;
+        Navigation.LocationChanged += OnLocationChanged;
+    }
+
+    private void Retry() => _boundary?.Recover();
+
+    // Moving to another page leaves the failed one behind.
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs args)
+    {
+        _boundary?.Recover();
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (!Connection.IsConnected)
+        {
+            Navigation.NavigateTo("login", replace: true);
+        }
+    }
+
+    private void OnConnectionChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Connection.Changed -= OnConnectionChanged;
+        Navigation.LocationChanged -= OnLocationChanged;
+    }
+}

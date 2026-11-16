@@ -1,0 +1,17 @@
+@* Shown by the error boundary of the main layout instead of the page that failed. *@
+@* The details stay in the server log: nothing technical is shown to the user. *@
+
+<div class="nti-error-panel" role="alert">
+    <div class="nti-error-panel-glyph"><Icon Name="alert-triangle" Size="20" /></div>
+    <h2>@L("error.title")</h2>
+    <p>@L("error.text")</p>
+    <button class="nti-btn" type="button" @onclick="OnRetry">
+        <Icon Name="refresh" Size="14" />
+        @L("layout.retry")
+    </button>
+</div>
+
+@code {
+    /// <summary>Called when the user asks to try again.</summary>
+    [Parameter] public EventCallback OnRetry { get; set; }
+}

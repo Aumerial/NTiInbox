@@ -1,0 +1,327 @@
+@inject MessageQueueService Messages
+@inject InboxState Inbox
+@inject IbmiSession Connection
+@inject DialogService Dialogs
+@inject ToastService Toasts
+
+@* Sends a message to one or more queues, through QMHSNDM. *@
+@* The API accepts up to fifty recipients in a single call. *@
+
+<ModalDialog Visible="_visible" Title="@L("compose.title")" IconName="compose" Wide="true" OnClose="Close">
+    <Body>
+        <div class="nti-row nti-wrap" style="gap:12px">
+            <div class="nti-field nti-grow">
+                <label for="compose-type">@L("compose.type")</label>
+                <select id="compose-type" value="@_model.MessageType" @onchange="OnTypeChanged">
+                    <option value="*INFO">@L("compose.type.info")</option>
+                    <option value="*COMP">@L("compose.type.comp")</option>
+                    <option value="*DIAG">@L("compose.type.diag")</option>
+                    <option value="*INQ">@L("compose.type.inq")</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="nti-field">
+            <label>
+                @L("compose.recipients")
+                <span class="nti-hint" style="font-weight:400">
+                    @L("compose.recipients.count", _model.Targets.Count, SendMessageRequest.MaximumTargets)
+                    @if (_model.IsInquiry)
+                    {
+                        <text> &middot; @L("compose.recipients.inqSingle")</text>
+                    }
+                </span>
+            </label>
+
+            @if (_model.Targets.Count > 0)
+            {
+                <div class="nti-recipients">
+                    @foreach (var target in _model.Targets)
+                    {
+                        <span class="nti-recipient">
+                            <span class="nti-mono">@target.Name</span>
+                            <span class="nti-recipient-library nti-mono">@target.Library</span>
+                            <button type="button" aria-label="@L("compose.recipients.remove")" @onclick="() => Remove(target)">
+                                <Icon Name="close" Size="12" />
+                            </button>
+                        </span>
+                    }
+                </div>
+            }
+
+            <div class="nti-row nti-wrap" style="gap:8px">
+                <input type="text" class="nti-input-mono nti-grow" list="compose-queues" placeholder="QSYSOPR"
+                       aria-label="@L("compose.queueName")"
+                       style="min-width:160px" value="@_newQueue" @oninput="OnQueueInput" @onkeydown="OnQueueKeyDown"
+                       disabled="@IsTargetLimitReached" />
+
+                <input type="text" class="nti-input-mono" placeholder="*LIBL" style="width:130px"
+                       aria-label="@L("common.library")"
+                       value="@_newLibrary" @oninput="OnLibraryInput" @onkeydown="OnQueueKeyDown"
+                       disabled="@IsTargetLimitReached" />
+
+                <button class="nti-btn nti-btn-sm" type="button" @onclick="AddTyped" disabled="@IsTargetLimitReached">
+                    <Icon Name="plus" Size="14" />
+                    @L("compose.add")
+                </button>
+
+                @if (Inbox.CurrentQueue is { } current && !_model.Targets.Contains(current))
+                {
+                    <button class="nti-btn nti-btn-sm nti-btn-ghost" type="button" @onclick="() => Add(current)" disabled="@IsTargetLimitReached">
+                        <Icon Name="inbox" Size="14" />
+                        @current.Name
+                    </button>
+                }
+            </div>
+
+            <datalist id="compose-queues">
+                @foreach (var queue in Inbox.Queues)
+                {
+                    <option value="@queue.Name">@queue.Key</option>
+                }
+                <option value="*SYSOPR">@L("compose.special.sysopr")</option>
+                <option value="*ALLACT">@L("compose.special.allact")</option>
+            </datalist>
+
+            <HintIcon Text="@L("compose.recipients.hint")" />
+        </div>
+
+        @if (_model.IsInquiry)
+        {
+            <div class="nti-row nti-wrap" style="gap:12px">
+                <div class="nti-field nti-grow">
+                    <label for="compose-reply-queue">@L("compose.replyQueue") <HintIcon Text="@L("compose.replyQueue.hint")" /></label>
+                    <input id="compose-reply-queue" type="text" class="nti-input-mono" placeholder="@Connection.User" @bind="_model.ReplyQueue" />
+                </div>
+                <div class="nti-field" style="width:150px">
+                    <label for="compose-reply-library">@L("common.library")</label>
+                    <input id="compose-reply-library" type="text" class="nti-input-mono" placeholder="*LIBL" @bind="_model.ReplyLibrary" />
+                </div>
+            </div>
+        }
+
+        <div class="nti-field">
+            <label for="compose-text">@(_usePredefined ? L("compose.substitution") : L("compose.text"))</label>
+            <textarea id="compose-text" @bind="_model.MessageText" @bind:event="oninput"
+                      placeholder="@(_usePredefined ? L("compose.substitution.placeholder") : L("compose.text.placeholder"))"></textarea>
+            <span class="nti-hint">@Plural("compose.characters", _model.MessageText.Length)</span>
+        </div>
+
+        <div class="nti-divider"></div>
+
+        <label class="nti-row nti-small" style="gap:7px;cursor:pointer">
+            <input type="checkbox" style="width:auto" checked="@_usePredefined" @onchange="TogglePredefined" />
+            @L("compose.predefined")
+        </label>
+
+        @if (_usePredefined)
+        {
+            <div class="nti-row nti-wrap" style="gap:12px">
+                <div class="nti-field" style="width:130px">
+                    <label for="compose-id">@L("compose.messageId")</label>
+                    <input id="compose-id" type="text" class="nti-input-mono" placeholder="CPF9898" maxlength="7" @bind="_model.MessageId" />
+                </div>
+                <div class="nti-field nti-grow">
+                    <label for="compose-file">@L("compose.messageFile")</label>
+                    <input id="compose-file" type="text" class="nti-input-mono" placeholder="QCPFMSG" @bind="_model.MessageFile" />
+                </div>
+                <div class="nti-field" style="width:130px">
+                    <label for="compose-file-library">@L("common.library")</label>
+                    <input id="compose-file-library" type="text" class="nti-input-mono" placeholder="QSYS" @bind="_model.MessageFileLibrary" />
+                </div>
+            </div>
+        }
+    </Body>
+    <Footer>
+        <button class="nti-btn" type="button" @onclick="Close" disabled="@_busy">@L("common.cancel")</button>
+        <button class="nti-btn nti-btn-primary" type="button" @onclick="AskConfirmation"
+                disabled="@(_busy || _model.Targets.Count == 0)">
+            <Icon Name="send" Size="14" />
+            @(_model.Targets.Count > 1 ? Plural("compose.send", _model.Targets.Count) : L("compose.send.one"))
+        </button>
+    </Footer>
+</ModalDialog>
+
+<ConfirmDialog Visible="_confirm"
+               Title="@L("compose.confirm.title")"
+               Message="@ConfirmText()"
+               ConfirmLabel="@L("compose.confirm.label")"
+               Busy="_busy"
+               OnConfirm="Send"
+               OnCancel="() => _confirm = false" />
+
+@code {
+    private SendMessageRequest _model = new();
+    private string _newQueue = string.Empty;
+    private string _newLibrary = "*LIBL";
+    private bool _visible;
+    private bool _confirm;
+    private bool _busy;
+    private bool _usePredefined;
+
+    private bool IsTargetLimitReached => _model.Targets.Count >= SendMessageRequest.MaximumTargets;
+
+    protected override void OnInitialized() => Dialogs.ComposeRequested += Open;
+
+    private void Open()
+    {
+        _model = new SendMessageRequest
+        {
+            ReplyQueue = Connection.User,
+            ReplyLibrary = "*LIBL"
+        };
+
+        // The open queue is offered as the first recipient, it is the usual case.
+        if (Inbox.CurrentQueue is { } current)
+        {
+            _model.AddTarget(current);
+        }
+
+        _newQueue = string.Empty;
+        _newLibrary = "*LIBL";
+        _usePredefined = false;
+        _visible = true;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void Close()
+    {
+        _visible = false;
+        _confirm = false;
+    }
+
+    private void OnQueueInput(ChangeEventArgs args) => _newQueue = args.Value?.ToString() ?? string.Empty;
+
+    private void OnLibraryInput(ChangeEventArgs args) => _newLibrary = args.Value?.ToString() ?? string.Empty;
+
+    private void OnQueueKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter")
+        {
+            AddTyped();
+        }
+    }
+
+    private void AddTyped()
+    {
+        if (string.IsNullOrWhiteSpace(_newQueue))
+        {
+            return;
+        }
+
+        // A known queue brings its real library, the user does not have to guess it.
+        var known = Inbox.Queues.FirstOrDefault(q =>
+            string.Equals(q.Name, _newQueue.Trim(), StringComparison.OrdinalIgnoreCase));
+
+        var library = known is not null && string.Equals(_newLibrary.Trim(), "*LIBL", StringComparison.OrdinalIgnoreCase)
+            ? known.Library
+            : _newLibrary;
+
+        Add(new MessageQueueRef(_newQueue, string.IsNullOrWhiteSpace(library) ? "*LIBL" : library));
+
+        _newQueue = string.Empty;
+        _newLibrary = "*LIBL";
+    }
+
+    private void Add(MessageQueueRef queue)
+    {
+        if (_model.IsInquiry && _model.Targets.Count >= 1)
+        {
+            Toasts.Info(L("compose.toast.single"), L("compose.toast.inqSingle"));
+            return;
+        }
+
+        if (!_model.AddTarget(queue) && _model.Targets.Count >= SendMessageRequest.MaximumTargets)
+        {
+            Toasts.Info(L("compose.toast.limit"), L("compose.toast.limitText", SendMessageRequest.MaximumTargets));
+        }
+    }
+
+    private void Remove(MessageQueueRef queue) => _model.Targets.Remove(queue);
+
+    private void OnTypeChanged(ChangeEventArgs args)
+    {
+        _model.MessageType = args.Value?.ToString() ?? "*INFO";
+
+        // Switching to *INQ keeps only the first recipient.
+        if (_model.IsInquiry && _model.Targets.Count > 1)
+        {
+            var first = _model.Targets[0];
+            _model.Targets.Clear();
+            _model.Targets.Add(first);
+            Toasts.Info(L("compose.toast.reduced"), L("compose.toast.inqSingle"));
+        }
+    }
+
+    private void TogglePredefined(ChangeEventArgs args)
+    {
+        _usePredefined = args.Value is true;
+
+        if (!_usePredefined)
+        {
+            _model.MessageId = string.Empty;
+        }
+        else
+        {
+            _model.MessageFile = string.IsNullOrWhiteSpace(_model.MessageFile) ? "QCPFMSG" : _model.MessageFile;
+            _model.MessageFileLibrary = string.IsNullOrWhiteSpace(_model.MessageFileLibrary) ? "QSYS" : _model.MessageFileLibrary;
+        }
+    }
+
+    private void AskConfirmation()
+    {
+        // A name still in the input counts as a recipient: without this it would be
+        // lost at send time with nothing to flag it.
+        AddTyped();
+        _confirm = _model.Targets.Count > 0;
+    }
+
+    private string ConfirmText()
+    {
+        var names = _model.Targets.Count > 5
+            ? Plural("compose.confirm.queues", _model.Targets.Count)
+            : string.Join(", ", _model.Targets.Select(t => t.Name));
+
+        return L("compose.confirm.text", _model.MessageType, names);
+    }
+
+    private async Task Send()
+    {
+        if (!_usePredefined)
+        {
+            _model.MessageId = string.Empty;
+        }
+
+        _busy = true;
+
+        try
+        {
+            await Messages.SendAsync(_model);
+
+            // Recipients are named in the confirmation: it is the only way to check at a
+            // glance that the message went to the right queues.
+            var detail = _model.Targets.Count > 5
+                ? Plural("compose.confirm.queues", _model.Targets.Count)
+                : string.Join(", ", _model.Targets.Select(t => t.Name));
+
+            Toasts.Success(Plural("compose.toast.sent", _model.Targets.Count), L("compose.toast.sentDetail", _model.MessageType, detail), keep: true);
+            Close();
+            Dialogs.RequestRefresh();
+        }
+        catch (Exception ex)
+        {
+            _confirm = false;
+            Toasts.Error(L("compose.toast.failed"), ex);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    public override void Dispose()
+    {
+        Dialogs.ComposeRequested -= Open;
+        base.Dispose();
+    }
+}

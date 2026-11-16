@@ -1,0 +1,852 @@
+@page "/"
+@inject IbmiSession Connection
+@inject InboxState Inbox
+@inject MessageQueueService Messages
+@inject DialogService Dialogs
+@inject ToastService Toasts
+@inject BrowserNotifier Notifier
+@inject ErrorText Errors
+
+@* The counter in the tab title follows the mail client convention. *@
+<PageTitle>@PageTitleText()</PageTitle>
+
+@* Inbox: list on the left, reading pane on the right. Messages waiting for *@
+@* a reply form a pinned section at the top of the list. *@
+
+@{
+    var visible = _messages.Where(_filter.Matches).ToList();
+    var waiting = visible.Where(MessageFormatter.IsWaitingForReply).ToList();
+    var others = visible.Where(m => !MessageFormatter.IsWaitingForReply(m)).ToList();
+    var pendingTotal = _messages.Count(MessageFormatter.IsWaitingForReply);
+    var checkedVisible = visible.Count(IsChecked);
+
+    // Grouping is computed once per render: it feeds the display and the
+    // counter of rows saved.
+    var groups = _grouped ? MessageGrouping.Build(others) : new List<MessageGroup>();
+    _groupedSavings = _grouped ? others.Count - groups.Sum(g => g.IsCollapsible ? 1 : g.Count) : 0;
+}
+
+<div class="nti-topbar">
+    <div class="nti-title">
+        <strong>@(_queue?.Name ?? L("inbox.noQueue"))</strong>
+        <span>
+            @if (_queue is not null)
+            {
+                @($"{_queue.Library}/{_queue.Name}")
+                @if (_messages.Count > 0)
+                {
+                    @if (_total > _messages.Count)
+                    {
+                        <text> &middot; @L("inbox.partial", _messages.Count, _total)</text>
+                    }
+                    else
+                    {
+                        <text> &middot; @Plural("inbox.messageCount", _messages.Count)</text>
+                    }
+                }
+                @if (pendingTotal > 0)
+                {
+                    <text> &middot; @L(_total > _messages.Count ? "inbox.pendingAtLeast" : "inbox.pendingCount", pendingTotal)</text>
+                }
+            }
+        </span>
+    </div>
+
+    <div class="nti-spacer"></div>
+
+    @if (_lastRefresh is not null)
+    {
+        <span class="nti-small nti-muted" title="@L("inbox.lastRead")">@_lastRefresh.Value.ToString("HH:mm:ss")</span>
+    }
+
+    <button class="nti-btn nti-btn-sm @(_showChart ? "nti-btn-primary" : "")" type="button"
+            title="@L("inbox.chart.tooltip")"
+            @onclick="() => _showChart = !_showChart">
+        <Icon Name="chart" Size="14" />
+    </button>
+
+    <button class="nti-btn nti-btn-sm @(_autoRefresh ? "nti-btn-primary" : "")" type="button"
+            title="@(_autoRefresh ? L("inbox.auto.on", AutoRefreshSeconds) : L("inbox.auto.off"))"
+            @onclick="ToggleAutoRefresh">
+        <Icon Name="clock" Size="14" />
+        @L("inbox.auto.label")
+    </button>
+
+    <button class="nti-btn nti-btn-sm" type="button" @onclick="Load" disabled="@_loading">
+        @if (_loading)
+        {
+            <span class="nti-loader"></span>
+        }
+        else
+        {
+            <Icon Name="refresh" Size="14" />
+        }
+        @L("inbox.refresh")
+    </button>
+</div>
+
+@if (_queue is not null)
+{
+    <MessageFilterBar Filter="_filter" AvailableTypes="_availableTypes" OnChanged="OnFilterChanged" />
+
+    @* The chart covers the whole queue, not the filtered result: otherwise *@
+    @* clicking a slot would make every other bar disappear. *@
+    @if (_showChart)
+    {
+        <QueueActivityChart Buckets="QueueActivity.Build(_messages)"
+                            Truncated="_total > _messages.Count"
+                            Loaded="_messages.Count"
+                            Selected="_filter.HourBucket"
+                            OnSelect="OnHourSelected" />
+    }
+}
+
+<div class="nti-app-body">
+    @if (_queue is null)
+    {
+        <div class="nti-card" style="height:100%">
+            <EmptyState IconName="folder"
+                        Title="@L("inbox.chooseQueue.title")"
+                        Description="@L("inbox.chooseQueue.text")" />
+        </div>
+    }
+    else
+    {
+        <div class="nti-inbox-layout">
+            <div class="nti-card nti-message-list">
+                @if (checkedVisible > 0)
+                {
+                    <div class="nti-bulk-bar">
+                        <Icon Name="check" Size="15" />
+                        <span>@Plural("inbox.selected", checkedVisible)</span>
+                        <span class="nti-grow"></span>
+                        <button class="nti-btn nti-btn-sm nti-btn-ghost" type="button" @onclick="ClearSelection" disabled="@_busy">@L("common.cancel")</button>
+                        <button class="nti-btn nti-btn-sm nti-btn-danger" type="button" @onclick="() => _confirmSelection = true" disabled="@_busy">
+                            <Icon Name="trash" Size="14" />
+                            @L("common.delete")
+                        </button>
+                    </div>
+                }
+                else
+                {
+                    <div class="nti-card-header">
+                        <input type="checkbox" class="nti-message-check" style="margin:0 0 0 4px"
+                               checked="@(visible.Count > 0 && checkedVisible == visible.Count)"
+                               @onchange="args => ToggleAll(visible, args)"
+                               aria-label="@L("inbox.selectAll")"
+                               disabled="@(visible.Count == 0)" />
+                        <div class="nti-heading">
+                            <strong>@L("inbox.messages")</strong>
+                            <span>
+                                @Plural("inbox.shown", visible.Count, _messages.Count)
+                                @if (_filter.IsActive)
+                                {
+                                    <text> &middot; @L("inbox.filtersActive")</text>
+                                }
+                                @if (_grouped && _groupedSavings > 0)
+                                {
+                                    <text> &middot; @Plural("inbox.grouped", _groupedSavings)</text>
+                                }
+                            </span>
+                        </div>
+                        <span class="nti-grow"></span>
+                        <button class="nti-btn nti-btn-sm @(_grouped ? "nti-btn-primary" : "nti-btn-ghost")" type="button"
+                                title="@L("inbox.group.tooltip")"
+                                @onclick="() => _grouped = !_grouped">
+                            <Icon Name="layers" Size="14" />
+                        </button>
+                        <button class="nti-btn nti-btn-sm nti-btn-ghost-danger" type="button"
+                                title="@L("inbox.deleteShown.tooltip")"
+                                @onclick="() => _confirmVisible = true" disabled="@(_busy || visible.Count == 0)">
+                            <Icon Name="trash" Size="14" />
+                        </button>
+                    </div>
+                }
+
+                <div class="nti-card-body">
+                    @if (_loading)
+                    {
+                        <div class="nti-loading-line">
+                            <span class="nti-loader"></span>
+                            @L("inbox.reading")
+                        </div>
+                    }
+                    else if (_unsupported)
+                    {
+                        <EmptyState IconName="shield-alert"
+                                    Title="@L("inbox.unsupported.title")"
+                                    Description="@L("inbox.unsupported.text", _queue?.Name ?? string.Empty)" />
+                    }
+                    else if (_messages.Count == 0)
+                    {
+                        <EmptyState IconName="inbox"
+                                    Title="@L("inbox.empty.title")"
+                                    Description="@L("inbox.empty.text")" />
+                    }
+                    else if (visible.Count == 0)
+                    {
+                        <EmptyState IconName="search"
+                                    Title="@L("inbox.noResult.title")"
+                                    Description="@L("inbox.noResult.text")">
+                            <button class="nti-btn nti-btn-sm" type="button" @onclick="ResetFilter">@L("inbox.noResult.reset")</button>
+                        </EmptyState>
+                    }
+                    else
+                    {
+                        @if (waiting.Count > 0)
+                        {
+                            <div class="nti-list-section nti-waiting">
+                                <Icon Name="clock" Size="14" />
+                                <span>@L("inbox.section.waiting")</span>
+                                <span class="nti-count">@waiting.Count</span>
+                            </div>
+
+                            @foreach (var message in waiting)
+                            {
+                                <MessageListItem Message="message"
+                                                 Selected="ReferenceEquals(message, _selected)"
+                                                 Checked="IsChecked(message)"
+                                                 Highlight="true"
+                                                 OnClick="() => Select(message)"
+                                                 OnCheck="value => SetChecked(message, value)" />
+                            }
+                        }
+
+                        @if (others.Count > 0)
+                        {
+                            @if (waiting.Count > 0)
+                            {
+                                <div class="nti-list-section">
+                                    <span>@L("inbox.section.others")</span>
+                                    <span class="nti-count">@others.Count</span>
+                                </div>
+                            }
+
+                            @if (_grouped)
+                            {
+                                @foreach (var group in groups)
+                                {
+                                    @* The key keeps the expanded state when the list is reread. *@
+                                    <MessageGroupRow @key="group.Key"
+                                                     Group="group"
+                                                     Selected="_selected"
+                                                     CheckedPredicate="IsChecked"
+                                                     OnSelect="Select"
+                                                     OnCheck="OnGroupCheck" />
+                                }
+                            }
+                            else
+                            {
+                                @foreach (var message in others)
+                                {
+                                    <MessageListItem Message="message"
+                                                     Selected="ReferenceEquals(message, _selected)"
+                                                     Checked="IsChecked(message)"
+                                                     OnClick="() => Select(message)"
+                                                     OnCheck="value => SetChecked(message, value)" />
+                                }
+                            }
+                        }
+                    }
+                </div>
+            </div>
+
+            @if (_selected is null)
+            {
+                <div class="nti-card">
+                    <EmptyState IconName="mail"
+                                Title="@L("inbox.noOpen.title")"
+                                Description="@L("inbox.noOpen.text")" />
+                </div>
+            }
+            else
+            {
+                <MessageDetail Message="_selected"
+                               Busy="_busy"
+                               Help="@_help"
+                               HelpLoading="_helpLoading"
+                               OnLoadHelp="LoadHelp"
+                               OnOpenJob="job => Dialogs.OpenJob(job)"
+                               OnReply="AskReply"
+                               OnDelete="() => _confirmDelete = true"
+                               OnRefresh="Load" />
+            }
+        </div>
+    }
+</div>
+
+<ConfirmDialog Visible="_confirmDelete"
+               Title="@L("confirm.delete.title")"
+               Message="@L("confirm.delete.text", _selected is null ? string.Empty : MessageFormatter.DisplayId(Localizer, _selected))"
+               ConfirmLabel="@L("common.delete")"
+               Danger="true"
+               Busy="_busy"
+               OnConfirm="Delete"
+               OnCancel="() => _confirmDelete = false" />
+
+<ConfirmDialog Visible="_confirmReply"
+               Title="@L("confirm.reply.title")"
+               Message="@L("confirm.reply.text", _selected is null ? string.Empty : MessageFormatter.DisplayId(Localizer, _selected), _pendingReply)"
+               ConfirmLabel="@L("detail.reply.send")"
+               Busy="_busy"
+               OnConfirm="Reply"
+               OnCancel="() => _confirmReply = false" />
+
+<ConfirmDialog Visible="_confirmSelection"
+               Title="@L("confirm.deleteSelection.title")"
+               Message="@SelectionConfirmText()"
+               ConfirmLabel="@L("common.delete")"
+               Danger="true"
+               Busy="_busy"
+               OnConfirm="DeleteSelection"
+               OnCancel="() => _confirmSelection = false" />
+
+<ConfirmDialog Visible="_confirmVisible"
+               Title="@L("confirm.deleteShown.title")"
+               Message="@VisibleConfirmText()"
+               ConfirmLabel="@L("common.delete")"
+               Danger="true"
+               Busy="_busy"
+               OnConfirm="DeleteVisible"
+               OnCancel="() => _confirmVisible = false" />
+
+@code {
+    private List<QueueMessage> _messages = new();
+    private readonly HashSet<string> _checked = new();
+    private readonly MessageFilter _filter = new();
+    private List<string> _availableTypes = new();
+
+    private QueueMessage? _selected;
+    private MessageQueueRef? _queue;
+
+    private bool _loading;
+
+    // Real number of messages in the queue, which can exceed what a read returns.
+    private int _total;
+    private bool _busy;
+    private bool _confirmDelete;
+    private bool _confirmReply;
+    private string _pendingReply = string.Empty;
+    private bool _confirmSelection;
+    private bool _confirmVisible;
+    private string? _help;
+    private bool _helpLoading;
+
+    /// <summary>Automatic refresh period, in seconds.</summary>
+    private const int AutoRefreshSeconds = 30;
+
+    private System.Timers.Timer? _timer;
+    private bool _autoRefresh = true;
+    private DateTime? _lastRefresh;
+
+    /// <summary>
+    /// Keys of the messages that already waited for a reply at the previous read.
+    /// Used to notify only the new ones.
+    /// </summary>
+    private HashSet<string> _knownWaiting = new();
+
+    /// <summary>True when the queue is a system queue the API refuses to read.</summary>
+    private bool _unsupported;
+
+    /// <summary>Activity chart shown above the queue.</summary>
+    private bool _showChart = true;
+
+    /// <summary>Grouping of repeated messages, on by default.</summary>
+    private bool _grouped = true;
+
+    /// <summary>Filters the list on an hour slot, or clears it.</summary>
+    private void OnHourSelected(DateTime? hour)
+    {
+        _filter.HourBucket = hour;
+    }
+
+    /// <summary>Rows saved by grouping at the last render.</summary>
+    private int _groupedSavings;
+
+    /// <summary>Relay for the checkboxes coming from a group row.</summary>
+    private void OnGroupCheck((QueueMessage Message, bool Value) change)
+        => SetChecked(change.Message, change.Value);
+
+    protected override async Task OnInitializedAsync()
+    {
+        Connection.Changed += OnConnectionChanged;
+        Inbox.Changed += OnSessionChanged;
+        Dialogs.RefreshRequested += OnRefreshRequested;
+
+        _queue = Inbox.CurrentQueue;
+
+        if (_queue is not null)
+        {
+            await Load();
+        }
+
+        StartTimer();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Notifier.ReadPermissionAsync();
+        }
+    }
+
+    /// <summary>Tab title, prefixed with the number of messages awaiting a reply.</summary>
+    private string PageTitleText()
+    {
+        var name = _queue?.Name ?? "NTi Inbox";
+        var pending = _messages.Count(MessageFormatter.IsWaitingForReply);
+
+        return pending > 0 ? $"({pending}) {name}" : name;
+    }
+
+    private void StartTimer()
+    {
+        _timer?.Dispose();
+
+        if (!_autoRefresh)
+        {
+            _timer = null;
+            return;
+        }
+
+        _timer = new System.Timers.Timer(AutoRefreshSeconds * 1000) { AutoReset = true };
+        _timer.Elapsed += OnTimerElapsed;
+        _timer.Start();
+    }
+
+    private async void OnTimerElapsed(object? sender, System.Timers.ElapsedEventArgs args)
+    {
+        // A tick is skipped while a read or an action is running: two simultaneous
+        // calls on the same connection would bring nothing.
+        if (_loading || _busy || _queue is null)
+        {
+            return;
+        }
+
+        await InvokeAsync(async () =>
+        {
+            await Load();
+            StateHasChanged();
+        });
+    }
+
+    private async Task ToggleAutoRefresh()
+    {
+        _autoRefresh = !_autoRefresh;
+
+        if (_autoRefresh)
+        {
+            // The permission can only be requested right after a click.
+            var permission = await Notifier.RequestPermissionAsync();
+
+            if (permission == NotificationPermission.Denied)
+            {
+                Toasts.Info(L("toast.autoOn"), L("toast.autoOn.denied", AutoRefreshSeconds));
+            }
+        }
+
+        StartTimer();
+    }
+
+    /// <summary>
+    /// Warns about messages that just arrived waiting for a reply.
+    /// The notification only shows when the tab is in the background.
+    /// </summary>
+    private async Task NotifyNewWaiting(MessageQueueRef queue)
+    {
+        var waiting = _messages.Where(MessageFormatter.IsWaitingForReply).ToList();
+        var current = waiting.Select(KeyOf).Where(k => k is not null).Select(k => k!).ToHashSet();
+
+        var arrived = waiting
+            .Where(m => KeyOf(m) is { } key && !_knownWaiting.Contains(key))
+            .ToList();
+
+        var firstRead = _knownWaiting.Count == 0 && _lastRefresh is null;
+        _knownWaiting = current;
+
+        if (firstRead || arrived.Count == 0 || Notifier.Permission != NotificationPermission.Granted)
+        {
+            return;
+        }
+
+        if (arrived.Count == 1)
+        {
+            var message = arrived[0];
+
+            await Notifier.NotifyAsync(
+                L("notify.waiting.title", MessageFormatter.DisplayId(Localizer, message)),
+                L("notify.waiting.body", queue.Name, MessageFormatter.DisplayText(Localizer, message)),
+                KeyOf(message) ?? queue.Key);
+        }
+        else
+        {
+            await Notifier.NotifyAsync(
+                L("notify.many.title", arrived.Count),
+                L("notify.many.body", queue.Key),
+                queue.Key);
+        }
+    }
+
+    private async Task Load()
+    {
+        if (_queue is null || !Connection.IsConnected)
+        {
+            return;
+        }
+
+        _loading = true;
+        var queue = _queue;
+
+        try
+        {
+            var messages = await Messages.ListAsync(queue);
+
+            // The queue may have changed during the read, in which case the result is ignored.
+            if (!queue.Equals(_queue))
+            {
+                return;
+            }
+
+            // Null flags a system queue the API refuses to read, such as QHST.
+            _unsupported = messages is null;
+            _messages = messages ?? new List<QueueMessage>();
+            _availableTypes = _messages
+                .Select(m => (m.MessageType ?? string.Empty).Trim())
+                .Where(t => !string.IsNullOrEmpty(t))
+                .Distinct()
+                .OrderBy(t => t, StringComparer.Ordinal)
+                .ToList();
+
+            _total = _messages.Count;
+
+            // The listing is capped, the queue attributes give the real count. Failing to
+            // read them only costs the exact total, so it is not an error.
+            if (messages is not null && _messages.Count >= MessageQueueService.PageSize)
+            {
+                try
+                {
+                    _total = Math.Max(_total, (await Messages.GetAttributesAsync(queue)).NumberOfMessagesOnQueue);
+                }
+                catch (Exception)
+                {
+                    // Keep the number of messages read.
+                }
+            }
+
+            Inbox.SetCounts(queue, _total, _messages.Count(MessageFormatter.IsWaitingForReply));
+
+            // Keys that vanished after a deletion or a reply leave the selection.
+            var known = _messages.Select(KeyOf).Where(k => k is not null).ToHashSet();
+            _checked.RemoveWhere(k => !known.Contains(k));
+
+            _selected = _selected is null ? null : FindSame(_selected);
+            _help = null;
+
+            await NotifyNewWaiting(queue);
+            _lastRefresh = DateTime.Now;
+        }
+        catch (Exception ex)
+        {
+            _messages = new List<QueueMessage>();
+            _availableTypes = new List<string>();
+            _total = 0;
+            _selected = null;
+            _unsupported = false;
+            Toasts.Error(L("toast.readFailed", queue.Key), ex);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private static string? KeyOf(QueueMessage message)
+        => message.MessageKey is null || message.MessageKey.Length == 0
+            ? null
+            : Convert.ToBase64String(message.MessageKey);
+
+    private bool IsChecked(QueueMessage message)
+    {
+        var key = KeyOf(message);
+        return key is not null && _checked.Contains(key);
+    }
+
+    private void SetChecked(QueueMessage message, bool value)
+    {
+        var key = KeyOf(message);
+
+        if (key is null)
+        {
+            return;
+        }
+
+        if (value)
+        {
+            _checked.Add(key);
+        }
+        else
+        {
+            _checked.Remove(key);
+        }
+    }
+
+    private void ToggleAll(List<QueueMessage> visible, ChangeEventArgs args)
+    {
+        var select = args.Value is bool value && value;
+
+        foreach (var message in visible)
+        {
+            SetChecked(message, select);
+        }
+    }
+
+    private void ClearSelection() => _checked.Clear();
+
+    private void ResetFilter()
+    {
+        _filter.Reset();
+    }
+
+    private void OnFilterChanged() => StateHasChanged();
+
+    private QueueMessage? FindSame(QueueMessage previous)
+    {
+        var key = KeyOf(previous);
+
+        return key is null ? null : _messages.FirstOrDefault(m => KeyOf(m) == key);
+    }
+
+    private void Select(QueueMessage message)
+    {
+        _selected = message;
+        _help = null;
+    }
+
+    /// <summary>
+    /// The help is not returned by the listing: it is read on demand, for the open
+    /// message only, when the user clicks Show.
+    /// </summary>
+    private async Task LoadHelp()
+    {
+        if (_selected is null || _helpLoading)
+        {
+            return;
+        }
+
+        _helpLoading = true;
+
+        try
+        {
+            _help = await Messages.GetMessageHelpAsync(_selected);
+        }
+        catch (Exception ex)
+        {
+            _help = null;
+            Toasts.Error(L("toast.helpFailed"), ex);
+        }
+        finally
+        {
+            _helpLoading = false;
+        }
+    }
+
+    // A reply changes the state of the system: it is confirmed before being sent.
+    private void AskReply(string reply)
+    {
+        _pendingReply = reply;
+        _confirmReply = true;
+    }
+
+    private async Task Reply()
+    {
+        if (_selected is null || _queue is null)
+        {
+            return;
+        }
+
+        _busy = true;
+
+        try
+        {
+            await Messages.ReplyAsync(_queue, _selected.MessageKey!, _pendingReply);
+            Toasts.Success(L("toast.replySent"), $"{MessageFormatter.DisplayId(Localizer, _selected)}: {_pendingReply}", keep: true);
+            _confirmReply = false;
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            _confirmReply = false;
+            Toasts.Error(L("toast.replyRefused"), ex);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task Delete()
+    {
+        if (_selected is null || _queue is null)
+        {
+            return;
+        }
+
+        _busy = true;
+
+        try
+        {
+            await Messages.RemoveAsync(_queue, _selected.MessageKey!);
+            Toasts.Success(L("toast.deleted"), MessageFormatter.DisplayId(Localizer, _selected), keep: true);
+            _selected = null;
+            _confirmDelete = false;
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            Toasts.Error(L("toast.deleteFailed"), ex);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task DeleteSelection()
+    {
+        var keys = _messages.Where(IsChecked)
+            .Select(m => m.MessageKey!)
+            .ToList();
+
+        await DeleteBatch(keys);
+        _confirmSelection = false;
+    }
+
+    private async Task DeleteVisible()
+    {
+        var keys = _messages.Where(_filter.Matches)
+            .Where(m => m.MessageKey is not null && m.MessageKey.Length > 0)
+            .Select(m => m.MessageKey!)
+            .ToList();
+
+        await DeleteBatch(keys);
+        _confirmVisible = false;
+    }
+
+    private async Task DeleteBatch(List<byte[]> keys)
+    {
+        if (_queue is null || keys.Count == 0)
+        {
+            return;
+        }
+
+        _busy = true;
+
+        try
+        {
+            var (removed, failed, firstError) = await Messages.RemoveKeysAsync(_queue, keys);
+
+            if (failed > 0 && removed == 0 && firstError is not null)
+            {
+                Toasts.Error(Plural("toast.batchNone", failed), firstError);
+            }
+            else if (failed > 0)
+            {
+                var cause = firstError is null ? string.Empty : Errors.Describe(firstError);
+                Toasts.Info(Plural("toast.batchDone", removed), L("toast.batchPartial", failed, cause));
+            }
+            else
+            {
+                Toasts.Success(Plural("toast.batchDone", removed), _queue.Key, keep: true);
+            }
+
+            _checked.Clear();
+            _selected = null;
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            Toasts.Error(L("toast.deleteFailed"), ex);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private string SelectionConfirmText()
+    {
+        var selection = _messages.Where(IsChecked).ToList();
+        var waiting = selection.Count(MessageFormatter.IsWaitingForReply);
+
+        var text = Plural("confirm.deleteSelection.text", selection.Count, _queue?.Key ?? string.Empty);
+
+        return waiting > 0 ? $"{text} {Plural("confirm.stillWaiting", waiting)}" : text;
+    }
+
+    private string VisibleConfirmText()
+    {
+        var visible = _messages.Where(_filter.Matches).ToList();
+        var waiting = visible.Count(MessageFormatter.IsWaitingForReply);
+
+        var text = Plural(
+            _filter.IsActive ? "confirm.deleteShown.filtered" : "confirm.deleteShown.all",
+            visible.Count,
+            _queue?.Key ?? string.Empty);
+
+        return waiting > 0 ? $"{text} {Plural("confirm.stillWaiting", waiting)}" : text;
+    }
+
+    private async void OnSessionChanged()
+    {
+        if (Inbox.CurrentQueue?.Equals(_queue) == true)
+        {
+            return;
+        }
+
+        _queue = Inbox.CurrentQueue;
+        _selected = null;
+        _messages = new List<QueueMessage>();
+        _availableTypes = new List<string>();
+        _checked.Clear();
+        _total = 0;
+        _filter.Reset();
+
+        // Changing queue resets the detection: the messages already waiting in the
+        // new queue are not arrivals.
+        _knownWaiting.Clear();
+        _lastRefresh = null;
+
+        await InvokeAsync(async () =>
+        {
+            await Load();
+            StateHasChanged();
+        });
+    }
+
+    private async void OnRefreshRequested()
+    {
+        await InvokeAsync(async () =>
+        {
+            await Load();
+            StateHasChanged();
+        });
+    }
+
+    private void OnConnectionChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public override void Dispose()
+    {
+        Connection.Changed -= OnConnectionChanged;
+        Inbox.Changed -= OnSessionChanged;
+        Dialogs.RefreshRequested -= OnRefreshRequested;
+
+        if (_timer is not null)
+        {
+            _timer.Elapsed -= OnTimerElapsed;
+            _timer.Dispose();
+        }
+
+        base.Dispose();
+    }
+}

@@ -1,0 +1,47 @@
+@inject IbmiSession Connection
+@inject InboxState Inbox
+@inject NavigationManager Navigation
+
+@* Top bar: brand, connected user, disconnect. *@
+@* Navigation, language and theme live in the icon rail. *@
+
+<header class="nti-app-header @(Connection.IsProduction ? "nti-production" : "")">
+    <a class="nti-brand-link" href="" aria-label="NTi Inbox">
+        <span class="nti-brand-name"><span class="nti-brand-nti">NTi</span> Inbox</span>
+    </a>
+
+    <span class="nti-grow"></span>
+
+    <span class="nti-who" title="@L("header.connectedAs")">
+        <span class="nti-status-dot @(Connection.IsProduction ? "nti-production" : "")"></span>
+        <span>@($"{Connection.User}@{Connection.Host}")</span>
+        @if (Connection.IsProduction)
+        {
+            <span class="nti-chip nti-chip-danger">@L("login.production")</span>
+        }
+    </span>
+
+    <button class="nti-btn nti-btn-ghost nti-btn-icon" type="button" @onclick="Logout"
+            title="@L("header.disconnect")" aria-label="@L("header.disconnect")">
+        <Icon Name="logout" Size="16" />
+    </button>
+</header>
+
+@code {
+    protected override void OnInitialized() => Connection.Changed += OnConnectionChanged;
+
+    private void OnConnectionChanged() => _ = InvokeAsync(StateHasChanged);
+
+    private void Logout()
+    {
+        Connection.Disconnect();
+        Inbox.Reset();
+        Navigation.NavigateTo("login");
+    }
+
+    public override void Dispose()
+    {
+        Connection.Changed -= OnConnectionChanged;
+        base.Dispose();
+    }
+}

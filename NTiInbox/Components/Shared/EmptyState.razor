@@ -1,0 +1,28 @@
+@inherits Microsoft.AspNetCore.Components.ComponentBase
+@* Empty state: an icon, a title and an explanatory sentence. *@
+
+<div class="nti-empty-state">
+    <div class="nti-glyph">
+        <Icon Name="@IconName" Size="20" />
+    </div>
+    <strong>@Title</strong>
+    @if (!string.IsNullOrWhiteSpace(Description))
+    {
+        <p>@Description</p>
+    }
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>Icon shown above the title.</summary>
+    [Parameter] public string IconName { get; set; } = "inbox";
+
+    /// <summary>Title of the empty state.</summary>
+    [Parameter] public string Title { get; set; } = string.Empty;
+
+    /// <summary>Explanatory sentence.</summary>
+    [Parameter] public string? Description { get; set; }
+
+    /// <summary>Extra content, for example an action button.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

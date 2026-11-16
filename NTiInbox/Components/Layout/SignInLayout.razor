@@ -1,0 +1,13 @@
+@inherits LayoutComponentBase
+
+@* Empty layout of the sign-on screen: language and theme toggles at the top right. *@
+
+<div class="nti-login-shell">
+    <div class="nti-login-top">
+        <LanguageToggle />
+        <ThemeToggle />
+    </div>
+    @Body
+</div>
+
+<ToastHost />

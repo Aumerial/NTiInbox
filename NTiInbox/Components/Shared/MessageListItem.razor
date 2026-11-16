@@ -1,0 +1,69 @@
+@* Row of the inbox. The severity badge carries the color, the checkbox is for *@
+@* batch actions, the amber background flags a message waiting for a reply. *@
+
+<div class="nti-message-row @(Selected ? "nti-selected" : "") @(Waiting ? "nti-waiting" : "") @(Checked ? "nti-checked" : "") @(Highlight ? "nti-in-waiting-section" : "") @(Compact ? "nti-compact" : "")">
+    <input type="checkbox" class="nti-message-check" checked="@Checked" @onchange="OnCheckChanged"
+           aria-label="@L("inbox.selectMessage")" />
+
+    <button class="nti-message-row-body" type="button" @onclick="OnSelect">
+        <div class="nti-msg-top">
+            <SeverityBadge Severity="Message.MessageSeverity" />
+            <span class="nti-msg-id">@MessageFormatter.DisplayId(Localizer, Message)</span>
+            @if (Compact && !string.IsNullOrWhiteSpace(Message.SenderUserProfile))
+            {
+                <span class="nti-msg-sender nti-mono">@Message.SenderUserProfile</span>
+            }
+            <span class="nti-msg-time">@MessageFormatter.ShortStamp(Message)</span>
+        </div>
+
+        @* In compact mode, the text and chips are those of the group row just *@
+        @* above: repeating them would add nothing. *@
+        @if (!Compact)
+        {
+            <div class="nti-msg-text">@MessageFormatter.DisplayText(Localizer, Message)</div>
+
+            <div class="nti-msg-chips">
+                <span class="nti-chip @MessageFormatter.TypeCssClass(Message.MessageType)">@MessageFormatter.TypeLabel(Localizer, Message.MessageType)</span>
+
+                @if (MessageFormatter.ReplyStatusLabel(Localizer, Message) is { } replyStatus)
+                {
+                    <span class="nti-chip @MessageFormatter.ReplyStatusCssClass(Message)">@replyStatus</span>
+                }
+
+                @if (Message.CriticalBreakStatus?.Trim() == "1")
+                {
+                    <span class="nti-chip nti-chip-danger">@L("msg.criticalBreak")</span>
+                }
+            </div>
+        }
+    </button>
+</div>
+
+@code {
+    /// <summary>Message shown on this row.</summary>
+    [Parameter, EditorRequired] public QueueMessage Message { get; set; } = default!;
+
+    /// <summary>True when the row is the one open in the reading pane.</summary>
+    [Parameter] public bool Selected { get; set; }
+
+    /// <summary>True when the row is checked for a batch action.</summary>
+    [Parameter] public bool Checked { get; set; }
+
+    /// <summary>True for rows of the pinned section, which have an amber background.</summary>
+    [Parameter] public bool Highlight { get; set; }
+
+    /// <summary>Reduced row, used for the occurrences of an expanded group.</summary>
+    [Parameter] public bool Compact { get; set; }
+
+    /// <summary>Called when the row is clicked.</summary>
+    [Parameter] public EventCallback OnClick { get; set; }
+
+    /// <summary>Called when the checkbox changes.</summary>
+    [Parameter] public EventCallback<bool> OnCheck { get; set; }
+
+    private bool Waiting => MessageFormatter.IsWaitingForReply(Message);
+
+    private Task OnSelect() => OnClick.InvokeAsync();
+
+    private Task OnCheckChanged(ChangeEventArgs args) => OnCheck.InvokeAsync(args.Value is true);
+}

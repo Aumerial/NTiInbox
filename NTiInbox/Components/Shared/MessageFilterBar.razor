@@ -1,0 +1,100 @@
+@* Filter bar of the inbox. Filtering runs on the messages already read, *@
+@* no call to the system is made. *@
+
+<div class="nti-filter-bar">
+    <div class="nti-filter-search">
+        <span class="nti-filter-search-glyph"><Icon Name="search" Size="15" /></span>
+        <input type="text" placeholder="@L("filter.search")" aria-label="@L("filter.search")"
+               value="@Filter.Search" @oninput="OnSearchInput" />
+    </div>
+
+    <select title="@L("filter.replyStatus")" aria-label="@L("filter.replyStatus")" value="@Filter.ReplyStatus" @onchange="OnReplyStatusChanged">
+        <option value="@ReplyStatusFilter.All">@L("filter.reply.all")</option>
+        <option value="@ReplyStatusFilter.Waiting">@L("filter.reply.waiting")</option>
+        <option value="@ReplyStatusFilter.Answered">@L("filter.reply.answered")</option>
+        <option value="@ReplyStatusFilter.None">@L("filter.reply.none")</option>
+    </select>
+
+    <select title="@L("filter.severity")" aria-label="@L("filter.severity")" value="@Filter.MinimumSeverity" @onchange="OnSeverityChanged">
+        <option value="0">@L("filter.severity.all")</option>
+        <option value="10">@L("filter.severity.min", 10)</option>
+        <option value="30">@L("filter.severity.min", 30)</option>
+        <option value="40">@L("filter.severity.min", 40)</option>
+    </select>
+
+    <select title="@L("filter.type")" aria-label="@L("filter.type")" value="@Filter.MessageType" @onchange="OnTypeChanged">
+        <option value="">@L("filter.type.all")</option>
+        @foreach (var type in AvailableTypes)
+        {
+            <option value="@type">@MessageFormatter.TypeLabel(Localizer, type)</option>
+        }
+    </select>
+
+    <select title="@L("filter.period")" aria-label="@L("filter.period")" value="@Filter.Period" @onchange="OnPeriodChanged">
+        <option value="@PeriodFilter.All">@L("filter.period.all")</option>
+        <option value="@PeriodFilter.Today">@L("filter.period.today")</option>
+        <option value="@PeriodFilter.Week">@L("filter.period.week")</option>
+        <option value="@PeriodFilter.Month">@L("filter.period.month")</option>
+    </select>
+
+    @if (Filter.IsActive)
+    {
+        <button class="nti-btn nti-btn-sm nti-btn-ghost" type="button" @onclick="Reset" title="@L("filter.clear")">
+            <Icon Name="close" Size="14" />
+            @Plural("filter.count", Filter.ActiveCount)
+        </button>
+    }
+</div>
+
+@code {
+    /// <summary>Criteria edited by the bar.</summary>
+    [Parameter, EditorRequired] public MessageFilter Filter { get; set; } = default!;
+
+    /// <summary>Message types actually present in the open queue.</summary>
+    [Parameter] public IReadOnlyList<string> AvailableTypes { get; set; } = [];
+
+    /// <summary>Called after each criterion change.</summary>
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private async Task OnSearchInput(ChangeEventArgs args)
+    {
+        Filter.Search = args.Value?.ToString() ?? string.Empty;
+        await OnChanged.InvokeAsync();
+    }
+
+    private async Task OnReplyStatusChanged(ChangeEventArgs args)
+    {
+        Filter.ReplyStatus = Enum.TryParse<ReplyStatusFilter>(args.Value?.ToString(), out var status)
+            ? status
+            : ReplyStatusFilter.All;
+
+        await OnChanged.InvokeAsync();
+    }
+
+    private async Task OnSeverityChanged(ChangeEventArgs args)
+    {
+        Filter.MinimumSeverity = int.TryParse(args.Value?.ToString(), out var severity) ? severity : 0;
+        await OnChanged.InvokeAsync();
+    }
+
+    private async Task OnTypeChanged(ChangeEventArgs args)
+    {
+        Filter.MessageType = args.Value?.ToString() ?? string.Empty;
+        await OnChanged.InvokeAsync();
+    }
+
+    private async Task OnPeriodChanged(ChangeEventArgs args)
+    {
+        Filter.Period = Enum.TryParse<PeriodFilter>(args.Value?.ToString(), out var period)
+            ? period
+            : PeriodFilter.All;
+
+        await OnChanged.InvokeAsync();
+    }
+
+    private async Task Reset()
+    {
+        Filter.Reset();
+        await OnChanged.InvokeAsync();
+    }
+}

@@ -1,0 +1,27 @@
+@inject ThemeService Theme
+
+<button class="nti-btn nti-btn-ghost nti-btn-icon" type="button" @onclick="Theme.ToggleAsync"
+        title="@L("theme.toggle")" aria-label="@L("theme.toggle")">
+    <Icon Name="@(Theme.Theme == AppTheme.Light ? "sun" : "moon")" Size="16" />
+</button>
+
+@code {
+    protected override void OnInitialized() => Theme.Changed += OnChanged;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // The stored choice is read once the browser is available.
+        if (firstRender)
+        {
+            await Theme.InitializeAsync();
+        }
+    }
+
+    private void OnChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public override void Dispose()
+    {
+        Theme.Changed -= OnChanged;
+        base.Dispose();
+    }
+}

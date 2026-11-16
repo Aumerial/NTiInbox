@@ -1,0 +1,14 @@
+@* Severity badge: it carries the color in the list. *@
+
+<span class="nti-severity-badge @MessageFormatter.SeverityCssClass(Severity) @(Large ? "nti-large" : "")"
+      title="@L("severity.title", Severity, MessageFormatter.SeverityLabel(Localizer, Severity))">
+    @MessageFormatter.SeverityText(Severity)
+</span>
+
+@code {
+    /// <summary>Message severity, 0 to 99.</summary>
+    [Parameter] public int Severity { get; set; }
+
+    /// <summary>Larger version, used in the reading pane.</summary>
+    [Parameter] public bool Large { get; set; }
+}

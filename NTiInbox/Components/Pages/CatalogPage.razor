@@ -1,0 +1,201 @@
+@page "/catalog"
+@inject MessageQueueService Service
+@inject IbmiSession Connection
+@inject ToastService Toasts
+
+<PageTitle>@L("catalog.title") - NTi Inbox</PageTitle>
+
+@* Catalog of predefined messages: an id gives its text, its help *@
+@* and the list of its substitution variables. *@
+
+<div class="nti-page-head">
+    <div class="nti-title">
+        <h1>@L("catalog.title")</h1>
+        <span>@L("catalog.subtitle")</span>
+    </div>
+</div>
+
+<div class="nti-app-body">
+    <div class="nti-catalog-layout">
+        <div class="nti-catalog-search">
+            <div class="nti-field" style="width:150px">
+                <label for="catalog-id">@L("catalog.id")</label>
+                <input id="catalog-id" type="text" class="nti-input-mono" placeholder="CPF9898" maxlength="7"
+                       @bind="_messageId" @bind:event="oninput" @onkeydown="OnKeyDown" />
+            </div>
+
+            <div class="nti-field nti-grow">
+                <label for="catalog-file">@L("catalog.file")</label>
+                <select id="catalog-file" @bind="_selectedFile">
+                    @foreach (var file in MessageQueueService.CommonMessageFiles)
+                    {
+                        <option value="@($"{file.Library}/{file.File}")">@file.File, @L($"catalog.file.{file.File}")</option>
+                    }
+                    <option value="">@L("catalog.file.other")</option>
+                </select>
+            </div>
+
+            @if (string.IsNullOrEmpty(_selectedFile))
+            {
+                <div class="nti-field" style="width:150px">
+                    <label for="catalog-custom-file">@L("catalog.fileName")</label>
+                    <input id="catalog-custom-file" type="text" class="nti-input-mono" placeholder="QCPFMSG" @bind="_customFile" />
+                </div>
+                <div class="nti-field" style="width:130px">
+                    <label for="catalog-custom-library">@L("common.library")</label>
+                    <input id="catalog-custom-library" type="text" class="nti-input-mono" placeholder="QSYS" @bind="_customLibrary" />
+                </div>
+            }
+
+            <button class="nti-btn nti-btn-primary" type="button" @onclick="Search" disabled="@_loading">
+                @if (_loading)
+                {
+                    <span class="nti-loader"></span>
+                }
+                else
+                {
+                    <Icon Name="search" Size="14" />
+                }
+                @L("catalog.search")
+            </button>
+        </div>
+
+        <div class="nti-card" style="flex:1">
+            <div class="nti-card-body nti-padded">
+                @if (_loading)
+                {
+                    <div class="nti-loading-line">
+                        <span class="nti-loader"></span>
+                        @L("catalog.loading")
+                    </div>
+                }
+                else if (_result is null)
+                {
+                    <EmptyState IconName="book" Title="@L("catalog.empty.title")" Description="@L("catalog.empty.text")" />
+                }
+                else
+                {
+                    <div class="nti-stack">
+                        <div class="nti-row nti-wrap">
+                            <SeverityBadge Severity="_result.MessageSeverity" Large="true" />
+                            <span class="nti-mono" style="font-size:17px;font-weight:600">@_result.MessageId?.Trim()</span>
+                            <span class="nti-chip nti-chip-neutral">@_foundIn</span>
+                            @if (!string.IsNullOrWhiteSpace(_result.AlertOption) && _result.AlertOption != "*NO")
+                            {
+                                <span class="nti-chip nti-chip-info">@L("catalog.alert", _result.AlertOption)</span>
+                            }
+                            @if (_result.LogIndicator?.Trim() is "Y" or "1")
+                            {
+                                <span class="nti-chip nti-chip-neutral">@L("catalog.logged")</span>
+                            }
+                        </div>
+
+                        <div>
+                            <div class="nti-section-label">@L("catalog.text")</div>
+                            <p style="margin:6px 0 0 0;font-size:15px;line-height:1.55">@(_result.Message?.Trim() ?? L("msg.noText"))</p>
+                        </div>
+
+                        @if (!string.IsNullOrWhiteSpace(_result.MessageHelp))
+                        {
+                            <div>
+                                <div class="nti-section-label">@L("catalog.help")</div>
+                                <div class="nti-detail-help" style="margin:6px 0 0 0">@_result.MessageHelp!.Trim()</div>
+                            </div>
+                        }
+
+                        @if (_result.SubstitutionFormats.Count > 0)
+                        {
+                            <div>
+                                <div class="nti-section-label">@L("catalog.variables", _result.SubstitutionFormats.Count)</div>
+                                <table class="nti-var-table" style="margin-top:6px">
+                                    <thead>
+                                        <tr>
+                                            <th style="width:70px">@L("catalog.variable")</th>
+                                            <th style="width:110px">@L("catalog.varType")</th>
+                                            <th style="width:110px">@L("catalog.varLength")</th>
+                                            <th>@L("catalog.varSize")</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @for (var i = 0; i < _result.SubstitutionFormats.Count; i++)
+                                        {
+                                            var format = _result.SubstitutionFormats[i];
+                                            <tr>
+                                                <td class="nti-mono">&amp;@(i + 1)</td>
+                                                <td class="nti-mono">@format.SubstitutionVariableType</td>
+                                                <td>@L("catalog.bytes", format.ReplacementDataLength)</td>
+                                                <td>@format.FieldSizeOrDecimalPositions</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="nti-small nti-muted" style="margin:0">@L("catalog.noVariables")</p>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string _messageId = string.Empty;
+    private string _selectedFile = "QSYS/QCPFMSG";
+    private string _customFile = "QCPFMSG";
+    private string _customLibrary = "QSYS";
+    private bool _loading;
+    private MessageDescription? _result;
+    private string _foundIn = string.Empty;
+
+    private (string File, string Library) CurrentFile
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(_selectedFile))
+            {
+                return (_customFile, _customLibrary);
+            }
+
+            var parts = _selectedFile.Split('/');
+            return parts.Length == 2 ? (parts[1], parts[0]) : ("QCPFMSG", "QSYS");
+        }
+    }
+
+    private async Task OnKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter")
+        {
+            await Search();
+        }
+    }
+
+    private async Task Search()
+    {
+        if (!Connection.IsConnected || string.IsNullOrWhiteSpace(_messageId))
+        {
+            return;
+        }
+
+        _loading = true;
+        var target = CurrentFile;
+
+        try
+        {
+            _result = await Service.LookupMessageAsync(_messageId, target.File, target.Library);
+            _foundIn = $"{target.Library.ToUpperInvariant()}/{target.File.ToUpperInvariant()}";
+        }
+        catch (Exception ex)
+        {
+            _result = null;
+            Toasts.Error(L("catalog.toast.notFound", _messageId.Trim().ToUpperInvariant()), ex);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}
