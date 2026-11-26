@@ -22,13 +22,18 @@ public sealed class MessageQueueService(IbmiSession connection)
     // Job-not-found codes. An ended job is the normal case for most senders.
     private static readonly string[] EndedJobCodes = ["CPF3C53", "CPF3C55", "CPF3C52"];
 
-    // Variable fields requested from QMHLSTM. The help text (0401 to 0404) is left out
-    // on purpose: it is heavy and only the opened message needs it, via QMHRTVM.
+    // Maximum length of the help text returned by the listing, in bytes.
+    private const int HelpMaxLength = 4000;
+
+    // Variable fields requested from QMHLSTM. Only the help with its substitution values
+    // applied (0402) is read: the raw help (0401) would show the placeholders (&1, &2...)
+    // of the message file, and QMHRTVM cannot apply values the listing returns as text.
     private static readonly List<int> ListFields =
     [
         201,  // Substitution data or immediate text
         301,  // Message text
         302,  // Text with substitution
+        402,  // Help with substitution
         501,  // Default reply
         601,  // Sender job
         607,  // Sender profile
@@ -93,7 +98,8 @@ public sealed class MessageQueueService(IbmiSession connection)
                     maxMessages: maxMessages,
                     startingMessageKey: "*LAST",
                     severityCriteria: 0,
-                    maxMessageLength: 512);
+                    maxMessageLength: 512,
+                    maxMessageHelpLength: HelpMaxLength);
             }
             catch (IbmiApiException ex) when (ex.ErrorCode == UnsupportedQueueCode)
             {
@@ -105,14 +111,20 @@ public sealed class MessageQueueService(IbmiSession connection)
     }
 
     /// <summary>
-    /// Reads the help text of a predefined message on demand. An immediate message has
-    /// none, in which case the result is null.
+    /// Returns the help text of a predefined message, with its substitution values applied.
+    /// An immediate message has none, in which case the result is null.
     /// </summary>
     public async Task<string?> GetMessageHelpAsync(QueueMessage message)
     {
         if (string.IsNullOrWhiteSpace(message.MessageId) || string.IsNullOrWhiteSpace(message.MessageFileName))
         {
             return null;
+        }
+
+        // The listing already holds the help as the system formats it for this message.
+        if (!string.IsNullOrWhiteSpace(message.MessageHelpWithReplacementData))
+        {
+            return message.MessageHelpWithReplacementData;
         }
 
         var library = !string.IsNullOrWhiteSpace(message.MessageFileLibraryUsed)
